@@ -477,23 +477,48 @@ main {
 </nav>
 
 <script>
+let currentFixtures = [];
+let currentMatch = null;
+let currentAnalysis = null;
+let savedPicks = JSON.parse(localStorage.getItem('gtp_picks') || '[]');
+
 function showPage(page) {
   document.querySelectorAll('.page').forEach(section => {
     section.classList.remove('active');
   });
 
   const target = document.getElementById(page);
-
   if (target) target.classList.add('active');
 
   document.querySelectorAll('.nav-item').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.page === page
-    );
+    button.classList.toggle('active', button.dataset.page === page);
   });
 
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  })[char]);
+}
+
+function formatDate(value) {
+  if (!value) return 'Date unavailable';
+  const date = new Date(value);
+  if (isNaN(date)) return escapeHTML(value);
+
+  return date.toLocaleString('en-GB', {
+    day:'2-digit',
+    month:'short',
+    year:'numeric',
+    hour:'2-digit',
+    minute:'2-digit'
+  });
 }
 
 async function loadFixtures() {
@@ -504,16 +529,10 @@ async function loadFixtures() {
   button.textContent = 'LOADING...';
 
   try {
-    const response = await fetch('/api/fixtures', {
-      cache:'no-store'
-    });
-
-    if (!response.ok) {
-      throw new Error('HTTP ' + response.status);
-    }
+    const response = await fetch('/api/fixtures', {cache:'no-store'});
+    if (!response.ok) throw new Error('HTTP ' + response.status);
 
     const data = await response.json();
-
     if (!Array.isArray(data.matches)) {
       throw new Error('Unexpected fixture response');
     }
@@ -524,13 +543,10 @@ async function loadFixtures() {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">⚠️</div>
-        <strong>FIXTURE SERVICE NOT CONNECTED</strong>
-        <br>
-        ${error.message}
-        <br><br>
-        The backend connection will be configured in the next stage.
-      </div>
-    `;
+        <strong>FIXTURE SERVICE ERROR</strong>
+        <br>${escapeHTML(error.message)}
+        <br><br>Please try refreshing.
+      </div>`;
   } finally {
     button.disabled = false;
     button.textContent = '↻ REFRESH';
@@ -539,66 +555,353 @@ async function loadFixtures() {
 
 function renderFixtures(matches) {
   const list = document.getElementById('fixtureList');
+  currentFixtures = matches;
 
   if (!matches.length) {
     list.innerHTML = '<div class="empty">No fixtures available.</div>';
     return;
   }
 
-  list.innerHTML = matches.map((match,index) => `
-    <div class="match" onclick="openMatch(${index})">
-      <span class="status">${escapeHTML(match.status || 'SCHEDULED')}</span>
-      <strong>
-        ${escapeHTML(match.homeTeam?.name || 'Home')}
-        <br><br>
-        VS
-        <br><br>
-        ${escapeHTML(match.awayTeam?.name || 'Away')}
-      </strong>
-      <small>${escapeHTML(match.utcDate || '')}</small>
-      <small>Tap to view match →</small>
-    </div>
-  `).join('');
+  list.innerHTML = matches.map((match,index) => {
+    const home = match.homeTeam?.name || 'Home';
+    const away = match.awayTeam?.name || 'Away';
+    const status = match.status || 'SCHEDULED';
+    const score = match.score?.fullTime;
 
-  window.currentFixtures = matches;
+    let scoreText = '';
+    if (score && score.home !== null && score.away !== null) {
+      scoreText = `<small>Score: ${score.home} - ${score.away}</small>`;
+    }
+
+    return `
+      <div class="match" onclick="openMatch(${index})">
+        <span class="status">${escapeHTML(status)}</span>
+        <strong>
+          ${escapeHTML(home)}
+          <br><br>VS<br><br>
+          ${escapeHTML(away)}
+        </strong>
+        ${scoreText}
+        <small>${formatDate(match.utcDate)}</small>
+        <small>Tap to view match →</small>
+      </div>`;
+  }).join('');
 
   document.getElementById('upcomingCount').textContent =
-    matches.filter(m => m.status === 'SCHEDULED').length;
+    matches.filter(m => m.status === 'SCHEDULED' || m.status === 'TIMED').length;
 
   document.getElementById('liveCount').textContent =
     matches.filter(m => ['LIVE','IN_PLAY','PAUSED'].includes(m.status)).length;
+
+  updateDashboard();
 }
 
-function openMatch(index) {
-  const match = window.currentFixtures?.[index];
-  if (!match) return;
+async function openMatch(index) {
+  const match = currentFixtures[index];
+  if (!match || !match.id) return;
 
-  document.getElementById('matchDetails').innerHTML = `
-    <div class="section-title">
-      <h3>${escapeHTML(match.homeTeam?.name || 'Home')} VS
-      ${escapeHTML(match.awayTeam?.name || 'Away')}</h3>
-    </div>
-    <p style="color:var(--muted);font-size:12px">
-      ${escapeHTML(match.status || 'SCHEDULED')}
-    </p>
-    <div class="empty">
-      <div class="icon">📊</div>
-      Match recommendations and detailed analysis will be connected in the next stage.
-    </div>
-  `;
+  currentMatch = match;
+  currentAnalysis = null;
 
   showPage('match');
+
+  const box = document.getElementById('matchDetails');
+
+  box.innerHTML = `
+    <div class="empty">
+      <div class="icon">📊</div>
+      <strong>ANALYSING MATCH...</strong>
+      <br>Retrieving real match statistics.
+    </div>`;
+
+  try {
+    const response = await fetch(
+      '/api/match/' + encodeURIComponent(match.id) + '/analysis',
+      {cache:'no-store'}
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.details || data.error || 'Analysis unavailable');
+    }
+
+    currentAnalysis = data;
+    renderMatchAnalysis(data);
+
+  } catch(error) {
+    box.innerHTML = `
+      <div class="empty">
+        <div class="icon">⚠️</div>
+        <strong>ANALYSIS UNAVAILABLE</strong>
+        <br>${escapeHTML(error.message)}
+        <br><br>
+        Please try again later.
+      </div>`;
+  }
 }
 
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  })[char]);
+function renderMatchAnalysis(data) {
+  const box = document.getElementById('matchDetails');
+  const match = data.match || {};
+  const model = data.model || {};
+  const form = data.teamForm || {};
+  const probabilities = data.probabilities || {};
+  const recommendations = data.recommendations || [];
+
+  const home = match.homeTeam || 'Home';
+  const away = match.awayTeam || 'Away';
+
+  box.innerHTML = `
+    <div class="section-title">
+      <h3>${escapeHTML(home)} VS ${escapeHTML(away)}</h3>
+      <span>REAL DATA</span>
+    </div>
+
+    <p style="color:var(--muted);font-size:11px">
+      ${escapeHTML(match.competition || '')}
+      <br>${formatDate(match.date)}
+      <br>Status: ${escapeHTML(match.status || '')}
+    </p>
+
+    <div class="panel" style="background:var(--panel2)">
+      <small style="color:var(--cyan)">GENERAL TIPS STATISTICAL MODEL</small>
+      <h3 style="margin-bottom:8px">EXPECTED GOALS</h3>
+      <div style="font-size:22px;font-weight:bold">
+        ${number(model.expectedHomeGoals)} -
+        ${number(model.expectedAwayGoals)}
+      </div>
+      <p style="color:var(--muted);font-size:10px">
+        Based on ${number(model.matchesPerTeam)} recent completed matches per team.
+      </p>
+    </div>
+
+    <div class="section-title">
+      <h3>TOP QUALIFIED RECOMMENDATIONS</h3>
+      <span>${recommendations.length} FOUND</span>
+    </div>
+
+    ${recommendations.length ? recommendations.map((pick,index) => `
+      <div class="panel">
+        <small style="color:var(--cyan)">RECOMMENDATION ${index + 1}</small>
+        <h3 style="margin:10px 0">${escapeHTML(pick.market)}</h3>
+        <div style="font-size:25px;font-weight:bold;color:var(--green)">
+          ${number(pick.probability)}%
+        </div>
+        <small style="color:var(--muted)">
+          Confidence: ${escapeHTML(pick.confidence || 'UNRATED')}
+        </small>
+        <div style="margin-top:13px">
+          <button class="btn" onclick="savePick(${index})">
+            SAVE PICK
+          </button>
+        </div>
+      </div>
+    `).join('') : `
+      <div class="empty">
+        No recommendations available for this match.
+      </div>
+    `}
+
+    <button class="btn secondary" style="width:100%;margin:8px 0 18px"
+      onclick="showFullAnalysis()">
+      VIEW FULL ANALYSIS
+    </button>
+
+    <div id="fullAnalysis" style="display:none">
+      <div class="section-title">
+        <h3>TEAM FORM</h3>
+        <span>LAST 10</span>
+      </div>
+
+      ${renderTeamForm(home,form.home)}
+      ${renderTeamForm(away,form.away)}
+
+      <div class="section-title">
+        <h3>MARKET PROBABILITIES</h3>
+        <span>MODEL ESTIMATES</span>
+      </div>
+
+      ${probabilityRow('Home Win',probabilities.homeWin)}
+      ${probabilityRow('Draw',probabilities.draw)}
+      ${probabilityRow('Away Win',probabilities.awayWin)}
+      ${probabilityRow('Over 1.5 Goals',probabilities.over15)}
+      ${probabilityRow('Over 2.5 Goals',probabilities.over25)}
+      ${probabilityRow('Over 3.5 Goals',probabilities.over35)}
+      ${probabilityRow('Under 1.5 Goals',probabilities.under15)}
+      ${probabilityRow('Under 2.5 Goals',probabilities.under25)}
+      ${probabilityRow('Under 3.5 Goals',probabilities.under35)}
+      ${probabilityRow('BTTS Yes',probabilities.bttsYes)}
+      ${probabilityRow('BTTS No',probabilities.bttsNo)}
+
+      <div class="section-title">
+        <h3>MODEL LIMITATIONS</h3>
+      </div>
+
+      <div class="panel">
+        ${(data.limitations || []).map(item => `
+          <p style="font-size:11px;color:var(--muted);line-height:1.6">
+            • ${escapeHTML(item)}
+          </p>
+        `).join('')}
+      </div>
+    </div>
+
+    <p style="font-size:10px;color:var(--muted);line-height:1.6">
+      Statistical estimates only. No guaranteed outcomes.
+      This app does not execute bets.
+    </p>
+  `;
 }
+
+function number(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(1) : '—';
+}
+
+function renderTeamForm(name,team) {
+  if (!team) return '';
+
+  return `
+    <div class="panel">
+      <strong>${escapeHTML(name)}</strong>
+      <p style="font-size:11px;color:var(--muted)">
+        Played: ${number(team.played)}
+        <br>Wins: ${number(team.wins)}
+        · Draws: ${number(team.draws)}
+        · Losses: ${number(team.losses)}
+        <br>Goals scored: ${number(team.goalsFor)}
+        <br>Goals conceded: ${number(team.goalsAgainst)}
+        <br>Average goals scored: ${number(team.averageGoalsFor)}
+        <br>Average goals conceded: ${number(team.averageGoalsAgainst)}
+      </p>
+      <div style="font-size:17px;letter-spacing:4px">
+        ${(team.form || []).map(result => {
+          const color = result === 'W' ? 'var(--green)' :
+                        result === 'L' ? 'var(--red)' : 'var(--cyan)';
+          return `<span style="color:${color}">${escapeHTML(result)}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function probabilityRow(label,value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+
+  return `
+    <div class="panel" style="padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <strong>${escapeHTML(label)}</strong>
+        <strong style="color:var(--cyan)">${n.toFixed(1)}%</strong>
+      </div>
+      <div style="height:6px;background:#203650;border-radius:10px;margin-top:9px">
+        <div style="height:6px;width:${Math.max(0,Math.min(100,n))}%;
+          background:linear-gradient(90deg,#1677ee,#38d8ff);
+          border-radius:10px"></div>
+      </div>
+    </div>`;
+}
+
+function showFullAnalysis() {
+  const section = document.getElementById('fullAnalysis');
+  if (!section) return;
+
+  section.style.display =
+    section.style.display === 'none' ? 'block' : 'none';
+}
+
+function savePick(index) {
+  if (!currentAnalysis || !currentMatch) return;
+
+  const pick = currentAnalysis.recommendations?.[index];
+  if (!pick) return;
+
+  const exists = savedPicks.some(p =>
+    String(p.matchId) === String(currentMatch.id) &&
+    p.market === pick.market
+  );
+
+  if (exists) {
+    alert('This pick has already been saved.');
+    return;
+  }
+
+  savedPicks.push({
+    id: Date.now(),
+    matchId: currentMatch.id,
+    homeTeam: currentAnalysis.match.homeTeam,
+    awayTeam: currentAnalysis.match.awayTeam,
+    date: currentAnalysis.match.date,
+    market: pick.market,
+    probability: pick.probability,
+    confidence: pick.confidence,
+    result: 'PENDING',
+    savedAt: new Date().toISOString()
+  });
+
+  localStorage.setItem('gtp_picks',JSON.stringify(savedPicks));
+
+  updateDashboard();
+  alert('Prediction saved successfully!');
+}
+
+function updateDashboard() {
+  document.getElementById('recordedCount').textContent = savedPicks.length;
+
+  const graded = savedPicks.filter(p =>
+    p.result === 'WON' || p.result === 'LOST'
+  );
+
+  const wins = graded.filter(p => p.result === 'WON').length;
+
+  document.getElementById('accuracy').textContent =
+    graded.length ? (wins / graded.length * 100).toFixed(1) + '%' : '—';
+}
+
+function renderHistory() {
+  const page = document.getElementById('history');
+  const panel = page.querySelector('.panel');
+
+  if (!savedPicks.length) {
+    panel.innerHTML = `
+      <div class="empty">
+        <div class="icon">📋</div>
+        <strong>NO RECORDED PREDICTIONS</strong>
+        <br>Save a recommendation from a match to see it here.
+      </div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:15px">
+      Saved predictions: ${savedPicks.length}
+    </div>
+    ${savedPicks.slice().reverse().map(pick => `
+      <div class="panel" style="background:var(--panel2)">
+        <strong>${escapeHTML(pick.homeTeam)} VS ${escapeHTML(pick.awayTeam)}</strong>
+        <p style="font-size:12px">${escapeHTML(pick.market)}</p>
+        <p style="font-size:11px;color:var(--muted)">
+          Probability: ${number(pick.probability)}%
+          <br>Match date: ${formatDate(pick.date)}
+          <br>Result: ${escapeHTML(pick.result)}
+        </p>
+      </div>
+    `).join('')}
+    <p style="font-size:10px;color:var(--muted)">
+      Picks remain pending until match-result verification is connected.
+    </p>`;
+}
+
+const originalShowPage = showPage;
+
+showPage = function(page) {
+  originalShowPage(page);
+  if (page === 'history') renderHistory();
+};
+
+updateDashboard();
+loadFixtures();
 </script>
 
 </body>
