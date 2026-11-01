@@ -1,0 +1,12 @@
+{
+  "name": "general-tips-pro",
+  "version": "1.0.0",
+  "description": "GENERAL TIPS PRO football analysis and prediction dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
