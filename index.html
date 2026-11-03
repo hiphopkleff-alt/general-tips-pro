@@ -1622,91 +1622,10 @@ function renderMatchAnalysis(data){
   const homeName = getHome(match);
   const awayName = getAway(match);
 
-  const recommendations = getApprovedRecommendations(data);
-
-  const model = data.model || {};
-  const probabilities = data.probabilities || {};
-  const limitations = data.limitations || [];
-
   const home = escapeHTML(homeName);
   const away = escapeHTML(awayName);
 
-  let recommendationsHTML = '';
-
-  if(recommendations.length){
-
-    recommendationsHTML = recommendations.map((item,index)=>{
-
-      const probability = probabilityValue(item);
-      const market = item.market || item.name;
-
-      const odds =
-        item.odds ??
-        item.price ??
-        item.decimalOdds ??
-        null;
-
-      const risk = probability === null
-        ? null
-        : getRisk(probability);
-
-      return `
-        <div class="recommendation-card">
-
-          <div class="recommendation-top">
-            <span class="recommendation-number">
-              PICK ${index+1}
-            </span>
-            ${
-              risk
-              ? `<span class="${risk.className}">${risk.label}</span>`
-              : ''
-            }
-          </div>
-
-          <div class="recommendation-market">
-            ${escapeHTML(market)}
-          </div>
-
-          <div class="recommendation-details">
-
-            <div>
-              <small>MODEL PROBABILITY</small>
-              <strong>
-                ${probability === null ? '—' : probability.toFixed(1)+'%'}
-              </strong>
-            </div>
-
-            <div>
-              <small>ODDS</small>
-              <strong>
-                ${odds === null ? 'Not supplied' : escapeHTML(odds)}
-              </strong>
-            </div>
-
-          </div>
-
-          <button class="save-pick-button"
-            onclick="savePick(${index})">
-            SAVE THIS PICK
-          </button>
-
-        </div>
-      `;
-
-    }).join('');
-
-  }else{
-
-    recommendationsHTML = `
-      <div class="empty">
-        No approved recommendations are available for this match yet.
-        The system will not invent a prediction.
-      </div>
-    `;
-
-  }
-
+  const probabilities = data.probabilities || {};
 
   /* MATCH HEADER */
 
@@ -1740,139 +1659,318 @@ function renderMatchAnalysis(data){
   `;
 
 
-  /* MODEL ANALYSIS */
+  /* ALL AVAILABLE MARKET PROBABILITIES */
 
-  const modelHTML = `
-    <div class="analysis-section">
+  const marketDefinitions = [
 
-      <h3>MODEL ANALYSIS</h3>
+    {
+      name:'HOME WIN (1)',
+      keys:['homeWin','home','1','home_win']
+    },
+    {
+      name:'DRAW (X)',
+      keys:['draw','X']
+    },
+    {
+      name:'AWAY WIN (2)',
+      keys:['awayWin','away','2','away_win']
+    },
+    {
+      name:'DOUBLE CHANCE 1X',
+      keys:['doubleChance1X','1X','homeOrDraw']
+    },
+    {
+      name:'DOUBLE CHANCE X2',
+      keys:['doubleChanceX2','X2','drawOrAway']
+    },
+    {
+      name:'DOUBLE CHANCE 12',
+      keys:['doubleChance12','12','eitherTeamWin']
+    },
+    {
+      name:'OVER 0.5 GOALS',
+      keys:['over0_5','over05','over0.5','over_0_5']
+    },
+    {
+      name:'OVER 1.5 GOALS',
+      keys:['over1_5','over15','over1.5','over_1_5']
+    },
+    {
+      name:'OVER 2.5 GOALS',
+      keys:['over2_5','over25','over2.5','over_2_5']
+    },
+    {
+      name:'OVER 3.5 GOALS',
+      keys:['over3_5','over35','over3.5','over_3_5']
+    },
+    {
+      name:'UNDER 0.5 GOALS',
+      keys:['under0_5','under05','under0.5','under_0_5']
+    },
+    {
+      name:'UNDER 1.5 GOALS',
+      keys:['under1_5','under15','under1.5','under_1_5']
+    },
+    {
+      name:'UNDER 2.5 GOALS',
+      keys:['under2_5','under25','under2.5','under_2_5']
+    },
+    {
+      name:'UNDER 3.5 GOALS',
+      keys:['under3_5','under35','under3.5','under_3_5']
+    },
+    {
+      name:'BTTS YES',
+      keys:['bttsYes','bothTeamsToScoreYes','btts_yes']
+    },
+    {
+      name:'BTTS NO',
+      keys:['bttsNo','bothTeamsToScoreNo','btts_no']
+    }
 
-      <div class="analysis-model-grid">
-
-        <div class="analysis-data-card">
-          <small>MODEL STATUS</small>
-          <strong>
-            ${escapeHTML(
-              model.status ||
-              model.state ||
-              'Analysis returned'
-            )}
-          </strong>
-        </div>
-
-        <div class="analysis-data-card">
-          <small>MODEL CONFIDENCE</small>
-          <strong>
-            ${
-              safeNumber(model.confidence) === null
-              ? 'Not supplied'
-              : (
-                safeNumber(model.confidence) <= 1
-                ? (safeNumber(model.confidence)*100).toFixed(1)+'%'
-                : safeNumber(model.confidence).toFixed(1)+'%'
-              )
-            }
-          </strong>
-        </div>
-
-        <div class="analysis-data-card">
-          <small>MODEL SCORE</small>
-          <strong>
-            ${escapeHTML(
-              model.score ?? model.rating ?? 'Not supplied'
-            )}
-          </strong>
-        </div>
-
-      </div>
-
-      <div class="analysis-explanation">
-        ${
-          escapeHTML(
-            model.explanation ||
-            model.analysis ||
-            model.summary ||
-            'The model has returned its available match analysis. Review the team form and probabilities before making any decision.'
-          )
-        }
-      </div>
-
-    </div>
-  `;
+  ];
 
 
-  /* MATCH PROBABILITIES */
+  function readProbability(value){
 
-  function probabilityRow(label,value){
+    if(value && typeof value === 'object'){
+      value =
+        value.probability ??
+        value.prob ??
+        value.percentage ??
+        value.value ??
+        value.confidence;
+    }
 
     let number = safeNumber(value);
 
-    if(number === null) return '';
+    if(number === null) return null;
 
-    if(number > 0 && number <= 1) number *= 100;
+    if(number > 0 && number <= 1){
+      number *= 100;
+    }
 
-    number = Math.max(0,Math.min(100,number));
+    if(number < 0 || number > 100) return null;
 
-    return `
-      <div class="probability-row">
-
-        <div class="probability-label">
-          <span>${escapeHTML(label)}</span>
-          <strong>${number.toFixed(1)}%</strong>
-        </div>
-
-        <div class="probability-track">
-          <div class="probability-fill"
-            style="width:${number}%"></div>
-        </div>
-
-      </div>
-    `;
+    return number;
   }
 
 
-  const probabilityRows = [
-    probabilityRow('Home Win (1)',
-      probabilities.homeWin ?? probabilities.home ?? probabilities['1']),
-    probabilityRow('Draw (X)',
-      probabilities.draw ?? probabilities['X']),
-    probabilityRow('Away Win (2)',
-      probabilities.awayWin ?? probabilities.away ?? probabilities['2']),
-    probabilityRow('Home or Draw (1X)',
-      probabilities.doubleChance1X ?? probabilities['1X']),
-    probabilityRow('Draw or Away (X2)',
-      probabilities.doubleChanceX2 ?? probabilities['X2']),
-    probabilityRow('Either Team Win (12)',
-      probabilities.doubleChance12 ?? probabilities['12']),
-    probabilityRow('BTTS Yes',
-      probabilities.bttsYes ?? probabilities.bothTeamsToScoreYes),
-    probabilityRow('BTTS No',
-      probabilities.bttsNo ?? probabilities.bothTeamsToScoreNo)
-  ].filter(Boolean).join('');
+  function findMarketProbability(keys){
 
+    for(const key of keys){
 
-  const probabilityHTML = `
-    <div class="analysis-section">
+      if(probabilities[key] !== undefined){
 
-      <h3>MATCH PROBABILITIES</h3>
+        const result = readProbability(probabilities[key]);
 
-      ${
-        probabilityRows
-        ? probabilityRows
-        : '<div class="empty">Probability data has not been supplied by the analysis API.</div>'
+        if(result !== null) return result;
+
       }
 
-      <div class="probability-disclaimer">
-        Probabilities are model estimates, not guaranteed outcomes.
+    }
+
+    return null;
+  }
+
+
+  const availableRecommendations = [];
+
+
+  /* READ PROBABILITIES SUPPLIED BY THE API */
+
+  marketDefinitions.forEach(market=>{
+
+    const probability =
+      findMarketProbability(market.keys);
+
+    if(probability !== null){
+
+      availableRecommendations.push({
+
+        market:market.name,
+
+        probability:probability,
+
+        odds:null
+
+      });
+
+    }
+
+  });
+
+
+  /* ALSO READ API RECOMMENDATION OBJECTS */
+
+  const apiRecommendations =
+    Array.isArray(data.recommendations)
+    ? data.recommendations
+    : [];
+
+
+  function normalizeMarketName(name){
+
+    return String(name || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g,'');
+
+  }
+
+
+  apiRecommendations.forEach(item=>{
+
+    const name = item.market || item.name || '';
+
+    const normalized = normalizeMarketName(name);
+
+    const definition = marketDefinitions.find(market=>
+      market.keys.some(key=>
+        normalizeMarketName(key) === normalized
+      ) ||
+      normalizeMarketName(market.name) === normalized
+    );
+
+    if(!definition) return;
+
+    const probability = readProbability(item);
+
+    if(probability === null) return;
+
+    const existing = availableRecommendations.find(
+      rec=>rec.market === definition.name
+    );
+
+    if(existing){
+
+      existing.probability = probability;
+
+      existing.odds =
+        item.odds ??
+        item.price ??
+        item.decimalOdds ??
+        existing.odds;
+
+    }else{
+
+      availableRecommendations.push({
+
+        market:definition.name,
+
+        probability:probability,
+
+        odds:
+          item.odds ??
+          item.price ??
+          item.decimalOdds ??
+          null
+
+      });
+
+    }
+
+  });
+
+
+  /* RANK HIGHEST PROBABILITY FIRST */
+
+  availableRecommendations.sort((a,b)=>
+    b.probability - a.probability
+  );
+
+
+  const topRecommendations =
+    availableRecommendations.slice(0,3);
+
+
+  /* RECOMMENDATION CARDS */
+
+  let recommendationsHTML = '';
+
+  if(topRecommendations.length){
+
+    recommendationsHTML = topRecommendations.map(
+      (item,index)=>{
+
+        const probability = item.probability;
+
+        const risk = getRisk(probability);
+
+        return `
+
+          <div class="recommendation-card">
+
+            <div class="recommendation-top">
+
+              <span class="recommendation-number">
+                PICK ${index+1}
+              </span>
+
+              ${
+                risk
+                ? `<span class="${risk.className}">
+                    ${risk.label}
+                  </span>`
+                : ''
+              }
+
+            </div>
+
+            <div class="recommendation-market">
+              ${escapeHTML(item.market)}
+            </div>
+
+            <div class="recommendation-details">
+
+              <div>
+                <small>MODEL PROBABILITY</small>
+
+                <strong>
+                  ${probability.toFixed(1)}%
+                </strong>
+              </div>
+
+              <div>
+                <small>ODDS</small>
+
+                <strong>
+                  ${
+                    item.odds === null
+                    ? 'Not supplied'
+                    : escapeHTML(item.odds)
+                  }
+                </strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+    ).join('');
+
+  }else{
+
+    recommendationsHTML = `
+
+      <div class="empty">
+
+        No verified market probabilities are
+        available for this match yet.
+
       </div>
 
-    </div>
-  `;
+    `;
+
+  }
 
 
-  /* TEAM FORM */
+  /* TEAM FORM — KEEP EXISTING DESIGN */
 
   const teamFormHTML = `
+
     <div class="analysis-section">
 
       <h3>TEAM FORM</h3>
@@ -1884,44 +1982,11 @@ function renderMatchAnalysis(data){
       )}
 
     </div>
+
   `;
 
 
-  /* LIMITATIONS */
-
-  let limitationsHTML = '';
-
-  if(Array.isArray(limitations) && limitations.length){
-
-    limitationsHTML = `
-      <div class="analysis-section">
-
-        <h3>DATA LIMITATIONS</h3>
-
-        <ul class="limitations-list">
-          ${limitations.map(item=>
-            `<li>${escapeHTML(
-              typeof item === 'string'
-              ? item
-              : item.message || item.description || JSON.stringify(item)
-            )}</li>`
-          ).join('')}
-        </ul>
-
-      </div>
-    `;
-
-  }
-
-
-  /* FINAL ORDER:
-     HEADER
-     AVAILABLE RECOMMENDATIONS
-     TEAM FORM
-     OTHER INFORMATION
-     MODEL ANALYSIS
-     MATCH PROBABILITIES
-  */
+  /* FINAL ANALYSIS PAGE */
 
   $('matchDetails').innerHTML = `
 
@@ -1929,33 +1994,22 @@ function renderMatchAnalysis(data){
 
     <div class="analysis-section">
 
-      <h3>AVAILABLE RECOMMENDATIONS</h3>
+      <h3>RECOMMENDATION</h3>
 
       <div class="recommendations-list">
+
         ${recommendationsHTML}
+
       </div>
 
     </div>
 
     ${teamFormHTML}
 
-    ${limitationsHTML}
-
-    ${modelHTML}
-
-    ${probabilityHTML}
-
-    <div class="analysis-footer">
-      GENERAL TIPS PRO V1.0 · ANALYSIS ONLY
-      <br>
-      Predictions are estimates and are not guaranteed.
-    </div>
-
   `;
 
 }
-
-
+    
 /* ======================================
    SAVE A RECOMMENDATION
    ====================================== */
