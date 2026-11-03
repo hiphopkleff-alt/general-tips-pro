@@ -15,7 +15,8 @@
   --cyan:#38d8ff;
   --white:#f4f8ff;
   --muted:#8fa4bd;
-  --green:#21d69a;
+  --green:#35ffad;
+  --green2:#65ffc0;
   --red:#ff6578;
   --yellow:#ffc857;
   --border:rgba(130,170,220,.15);
@@ -29,7 +30,9 @@
 
 body{
   font-family:Arial,Helvetica,sans-serif;
-  background:linear-gradient(160deg,#071426,#091b31 55%,#061120);
+  background:
+    radial-gradient(ellipse at top,#102a48 0%,transparent 48%),
+    linear-gradient(160deg,#071426,#091b31 55%,#061120);
   color:var(--white);
   min-height:100vh;
   padding-bottom:90px;
@@ -43,9 +46,9 @@ button{
 header{
   position:sticky;
   top:0;
-  z-index:20;
-  background:rgba(7,20,38,.96);
-  backdrop-filter:blur(12px);
+  z-index:30;
+  background:rgba(7,20,38,.97);
+  backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);
   padding:13px 15px;
 }
@@ -56,27 +59,24 @@ header{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
 }
 
 .brand{
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:11px;
 }
 
 .logo{
-  width:40px;
-  height:40px;
-  border-radius:12px;
+  width:43px;
+  height:43px;
+  border-radius:13px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:21px;
-  font-weight:900;
-  color:white;
-  background:linear-gradient(135deg,var(--blue),var(--cyan));
-  box-shadow:0 4px 18px rgba(37,140,255,.25);
+  font-size:23px;
+  background:linear-gradient(135deg,#258cff,#38d8ff);
+  box-shadow:0 0 22px rgba(37,140,255,.3);
 }
 
 .brand h1{
@@ -85,26 +85,25 @@ header{
 }
 
 .brand p{
-  font-size:9px;
   color:var(--muted);
-  margin-top:4px;
-  letter-spacing:1px;
+  font-size:9px;
+  margin-top:5px;
+  letter-spacing:1.4px;
 }
 
 .version{
-  font-size:10px;
   color:var(--cyan);
   border:1px solid rgba(56,216,255,.3);
-  padding:6px 9px;
-  border-radius:20px;
-  white-space:nowrap;
+  border-radius:25px;
+  padding:8px 12px;
+  font-size:11px;
 }
 
 main{
   width:100%;
   max-width:760px;
   margin:auto;
-  padding:15px;
+  padding:17px 15px;
 }
 
 .page{
@@ -122,15 +121,15 @@ main{
 }
 
 .page-title{
-  font-size:21px;
-  font-weight:800;
-  margin:5px 0 5px;
+  font-size:23px;
+  font-weight:900;
+  margin:4px 0 6px;
 }
 
 .page-subtitle{
   color:var(--muted);
   font-size:12px;
-  line-height:1.5;
+  line-height:1.6;
   margin-bottom:17px;
 }
 
@@ -142,25 +141,27 @@ main{
   margin-bottom:13px;
 }
 
+/* DASHBOARD */
+
 .stats-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:11px;
-  margin-top:18px;
+  margin-top:20px;
 }
 
 .stat-card{
   background:linear-gradient(145deg,#112945,#0d1e33);
   border:1px solid var(--border);
   border-radius:15px;
-  padding:16px 13px;
+  padding:17px 13px;
   min-height:105px;
 }
 
 .stat-label{
   color:var(--muted);
   font-size:10px;
-  font-weight:700;
+  font-weight:800;
   letter-spacing:.7px;
   line-height:1.5;
 }
@@ -169,24 +170,12 @@ main{
   font-size:27px;
   font-weight:900;
   margin-top:12px;
-  color:var(--white);
 }
 
-.stat-card:nth-child(1) .stat-number{
-  color:var(--cyan);
-}
-
-.stat-card:nth-child(2) .stat-number{
-  color:var(--green);
-}
-
-.stat-card:nth-child(3) .stat-number{
-  color:var(--blue);
-}
-
-.stat-card:nth-child(4) .stat-number{
-  color:var(--yellow);
-}
+.stat-card:nth-child(1) .stat-number{color:var(--cyan)}
+.stat-card:nth-child(2) .stat-number{color:var(--green)}
+.stat-card:nth-child(3) .stat-number{color:var(--blue)}
+.stat-card:nth-child(4) .stat-number{color:var(--yellow)}
 
 .history-link{
   width:100%;
@@ -194,44 +183,36 @@ main{
   padding:15px;
   display:flex;
   justify-content:space-between;
-  align-items:center;
   background:linear-gradient(100deg,#1269c5,#168fc9);
   border:0;
   border-radius:13px;
   color:white;
   font-size:13px;
-  font-weight:800;
+  font-weight:900;
 }
+
+/* SECTION HEADINGS */
 
 .section-heading{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
-  margin:17px 0 13px;
+  margin-bottom:15px;
 }
 
-.section-heading h2{
-  font-size:16px;
+.section-heading .page-subtitle{
+  margin-bottom:0;
 }
 
 .btn{
   border:0;
-  border-radius:9px;
-  padding:10px 13px;
+  border-radius:10px;
+  padding:11px 14px;
   font-size:11px;
-  font-weight:800;
+  font-weight:900;
   color:white;
   background:var(--blue);
-}
-
-.btn.secondary{
-  background:#1c3858;
-  border:1px solid var(--border);
-}
-
-.btn.green{
-  background:#087e62;
 }
 
 .btn:disabled{
@@ -239,39 +220,124 @@ main{
   cursor:not-allowed;
 }
 
-.match-card{
-  background:linear-gradient(145deg,#102640,#0c1d32);
+.btn.secondary{
+  background:#1c3858;
   border:1px solid var(--border);
-  border-radius:15px;
-  padding:14px;
-  margin-bottom:11px;
+}
+
+/* DATE RANGE BANNER */
+
+.date-banner{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-height:68px;
+  padding:13px 16px;
+  margin-bottom:16px;
+  border-radius:17px;
+  border:1px solid rgba(53,255,173,.5);
+  background:
+    linear-gradient(100deg,rgba(3,31,31,.96),rgba(7,31,41,.8));
+  box-shadow:
+    0 0 13px rgba(53,255,173,.1),
+    inset 0 0 15px rgba(53,255,173,.05);
+}
+
+.date-icon{
+  width:42px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  border:1px solid rgba(53,255,173,.35);
+  color:var(--green);
+  font-size:20px;
+}
+
+.date-range{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:2px;
+  color:#d7f9e9;
+  line-height:1.7;
+}
+
+/* MATCH CARDS */
+
+.match-card,
+.vip-card{
+  position:relative;
+  overflow:hidden;
+  margin-bottom:14px;
+  padding:15px;
+  border-radius:18px;
+  border:1px solid rgba(53,255,173,.55);
+  border-left:4px solid var(--green);
+  background:
+    linear-gradient(125deg,rgba(3,24,27,.97),rgba(8,28,36,.96) 65%,rgba(7,24,36,.98));
+  box-shadow:
+    0 0 12px rgba(53,255,173,.12),
+    inset 0 0 22px rgba(53,255,173,.035);
+}
+
+.match-card:before,
+.vip-card:before{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  top:0;
+  left:10%;
+  right:10%;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#65ffc0,transparent);
+}
+
+.match-card:after,
+.vip-card:after{
+  content:"";
+  position:absolute;
+  width:120px;
+  height:120px;
+  right:-65px;
+  bottom:-65px;
+  border-radius:50%;
+  background:rgba(53,255,173,.035);
+  pointer-events:none;
 }
 
 .match-top{
+  position:relative;
+  z-index:1;
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:8px;
-  margin-bottom:13px;
+  margin-bottom:17px;
 }
 
 .match-date{
-  color:var(--muted);
+  color:#a9c0c4;
   font-size:10px;
 }
 
 .status{
   font-size:9px;
   font-weight:900;
-  padding:6px 9px;
-  border-radius:20px;
-  background:rgba(37,140,255,.15);
+  letter-spacing:.5px;
+  padding:7px 11px;
+  border-radius:25px;
+  background:rgba(37,140,255,.17);
   color:var(--cyan);
+  white-space:nowrap;
 }
 
 .status.live{
   color:var(--green);
-  background:rgba(33,214,154,.12);
+  background:rgba(53,255,173,.12);
+  border:1px solid rgba(53,255,173,.3);
 }
 
 .status.ended{
@@ -280,106 +346,231 @@ main{
 }
 
 .teams{
+  position:relative;
+  z-index:1;
   display:grid;
-  grid-template-columns:1fr auto 1fr;
+  grid-template-columns:minmax(0,1fr) 35px minmax(0,1fr);
   align-items:center;
-  gap:8px;
+  gap:7px;
 }
 
-.team{
-  font-size:13px;
+.team-side{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+}
+
+.team-side.away{
+  justify-content:flex-end;
+  text-align:right;
+}
+
+.team-logo{
+  width:43px;
+  height:43px;
+  flex:0 0 43px;
+  object-fit:contain;
+  border-radius:50%;
+  background:rgba(255,255,255,.05);
+  padding:3px;
+}
+
+.team-name{
+  font-size:12px;
   font-weight:800;
   line-height:1.4;
   overflow-wrap:anywhere;
 }
 
-.team:last-child{
-  text-align:right;
-}
-
 .vs{
-  color:var(--muted);
+  text-align:center;
+  color:#8498a8;
   font-size:10px;
   font-weight:900;
 }
 
 .score{
-  color:var(--green);
-  font-size:16px;
-  font-weight:900;
   text-align:center;
+  color:var(--green2);
+  font-size:15px;
+  font-weight:900;
   white-space:nowrap;
 }
 
-.match-bottom{
+/* RESULT AND ODDS */
+
+.result-row{
+  position:relative;
+  z-index:1;
   display:flex;
-  justify-content:space-between;
+  justify-content:flex-end;
   align-items:center;
-  gap:8px;
-  margin-top:13px;
-  padding-top:11px;
-  border-top:1px solid var(--border);
+  gap:9px;
+  margin-top:14px;
 }
 
-.match-meta{
-  color:var(--muted);
+.result-pill{
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  min-width:87px;
+  padding:8px 14px;
+  border-radius:25px;
+  border:1px solid rgba(53,255,173,.65);
+  background:rgba(53,255,173,.07);
+  color:var(--green2);
   font-size:10px;
+  font-weight:900;
+  letter-spacing:1px;
 }
 
-.vip-card{
-  border:1px solid rgba(56,216,255,.23);
-  background:linear-gradient(145deg,#102c49,#0b1d32);
-  border-radius:15px;
-  padding:15px;
+.result-pill.lost{
+  color:#ff8492;
+  border-color:rgba(255,101,120,.65);
+  background:rgba(255,101,120,.08);
+}
+
+.odds-pill{
+  min-width:75px;
+  text-align:center;
+  padding:8px 13px;
+  border-radius:25px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(0,0,0,.16);
+  color:white;
+  font-size:12px;
+  font-weight:800;
+}
+
+/* PREDICTION AND CONFIDENCE */
+
+.prediction-market{
+  position:relative;
+  z-index:1;
+  color:#65ffc0;
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:3px;
+  margin-top:15px;
+  line-height:1.5;
+  text-transform:uppercase;
+  overflow-wrap:anywhere;
+}
+
+.confidence-line{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+  color:#aab9bd;
+  font-size:11px;
+}
+
+.confidence-line strong{
+  color:var(--green2);
+}
+
+.confidence-bars{
+  display:flex;
+  align-items:flex-end;
+  gap:2px;
+  height:21px;
+}
+
+.confidence-bars span{
+  width:4px;
+  height:7px;
+  border-radius:3px;
+  background:#35ffad;
+  opacity:.22;
+}
+
+.confidence-bars span:nth-child(2){height:10px}
+.confidence-bars span:nth-child(3){height:13px}
+.confidence-bars span:nth-child(4){height:17px}
+.confidence-bars span:nth-child(5){height:21px}
+
+.confidence-bars.level-medium span:nth-child(-n+3),
+.confidence-bars.level-high span{
+  opacity:1;
+}
+
+.confidence-bars.level-low span:nth-child(-n+2){
+  opacity:1;
+}
+
+.analysis-button{
+  position:relative;
+  z-index:1;
+  display:block;
+  width:100%;
+  margin-top:15px;
+  padding:13px;
+  border-radius:11px;
+  border:1px solid rgba(53,255,173,.8);
+  background:linear-gradient(100deg,#075c42,#087b58);
+  color:white;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.5px;
+  box-shadow:0 0 12px rgba(53,255,173,.12);
+}
+
+.analysis-button:active{
+  transform:scale(.98);
+}
+
+/* VIP */
+
+.vip-rank{
+  position:relative;
+  z-index:1;
+  color:var(--green2);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1px;
   margin-bottom:12px;
 }
 
-.vip-rank{
-  font-size:10px;
-  color:var(--cyan);
-  font-weight:900;
-  letter-spacing:.8px;
-}
-
 .vip-pick{
-  margin-top:13px;
+  position:relative;
+  z-index:1;
+  margin-top:14px;
   padding:12px;
-  border-radius:11px;
-  background:rgba(56,216,255,.07);
-  border:1px solid rgba(56,216,255,.14);
-}
-
-.vip-market{
-  font-size:14px;
-  font-weight:900;
-  line-height:1.4;
+  border-radius:12px;
+  border:1px solid rgba(53,255,173,.22);
+  background:rgba(53,255,173,.045);
 }
 
 .vip-confidence{
-  color:var(--green);
-  font-size:22px;
+  color:var(--green2);
+  font-size:23px;
   font-weight:900;
-  margin-top:7px;
+  margin-top:6px;
 }
 
 .vip-details{
   display:flex;
   flex-wrap:wrap;
   gap:7px;
-  margin-top:10px;
+  margin-top:9px;
 }
 
 .small-badge{
   font-size:9px;
-  padding:6px 8px;
+  padding:6px 9px;
   border-radius:20px;
-  background:#1a3858;
-  color:#c7e4ff;
+  background:#183b3a;
+  color:#c8ffe6;
 }
 
 .risk-low{
-  color:var(--green);
-  background:rgba(33,214,154,.12);
+  color:var(--green2);
+  background:rgba(53,255,173,.12);
 }
 
 .risk-medium{
@@ -388,37 +579,20 @@ main{
 }
 
 .risk-high{
-  color:var(--red);
+  color:#ff8996;
   background:rgba(255,101,120,.12);
 }
 
 .unavailable{
+  position:relative;
+  z-index:1;
   color:var(--yellow);
-  font-size:12px;
-  margin-top:12px;
-  line-height:1.5;
-}
-
-.empty{
-  text-align:center;
-  color:var(--muted);
-  padding:28px 15px;
-  font-size:12px;
-  line-height:1.7;
-}
-
-.loading{
-  text-align:center;
-  color:var(--cyan);
-  padding:25px 12px;
-  font-size:12px;
-}
-
-.error{
-  color:var(--red);
-  font-size:12px;
+  font-size:11px;
   line-height:1.6;
+  margin-top:12px;
 }
+
+/* ANALYSIS */
 
 .analysis-title{
   font-size:16px;
@@ -452,8 +626,9 @@ main{
 }
 
 .recommendation{
-  background:#0c2037;
-  border:1px solid var(--border);
+  background:linear-gradient(120deg,#0c292b,#0c2037);
+  border:1px solid rgba(53,255,173,.3);
+  border-left:3px solid var(--green);
   border-radius:12px;
   padding:13px;
   margin-bottom:10px;
@@ -462,6 +637,7 @@ main{
 .recommendation h3{
   font-size:13px;
   margin-bottom:8px;
+  color:var(--green2);
 }
 
 .recommendation p{
@@ -482,8 +658,68 @@ main{
 .progress span{
   display:block;
   height:100%;
-  background:linear-gradient(90deg,var(--blue),var(--cyan));
+  background:linear-gradient(90deg,#14a875,#65ffc0);
   border-radius:10px;
+}
+
+/* HISTORY */
+
+.history-item{
+  border:1px solid rgba(53,255,173,.22);
+  border-left:3px solid var(--green);
+  background:linear-gradient(120deg,#0d292b,#0e2239);
+  border-radius:13px;
+  padding:13px;
+  margin-bottom:10px;
+}
+
+.history-item h3{
+  font-size:13px;
+  margin-bottom:7px;
+}
+
+.history-item p{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.8;
+}
+
+.pending{color:var(--yellow);font-weight:900}
+.won{color:var(--green);font-weight:900}
+.lost{color:var(--red);font-weight:900}
+
+/* GENERAL */
+
+.notice{
+  background:rgba(255,200,87,.08);
+  border:1px solid rgba(255,200,87,.2);
+  color:#f4d58d;
+  border-radius:11px;
+  padding:12px;
+  font-size:10px;
+  line-height:1.7;
+  margin-top:12px;
+}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  padding:28px 15px;
+  font-size:12px;
+  line-height:1.8;
+}
+
+.loading{
+  text-align:center;
+  color:var(--green2);
+  padding:25px 12px;
+  font-size:12px;
+}
+
+.error{
+  color:var(--red);
+  font-size:12px;
+  line-height:1.7;
 }
 
 .form-row{
@@ -505,60 +741,16 @@ main{
   color:white;
   padding:12px;
   border-radius:9px;
-  outline:none;
 }
 
-.history-item{
-  border:1px solid var(--border);
-  background:#0e2239;
-  border-radius:13px;
-  padding:13px;
-  margin-bottom:10px;
-}
-
-.history-item h3{
-  font-size:13px;
-  margin-bottom:7px;
-}
-
-.history-item p{
-  color:var(--muted);
-  font-size:11px;
-  line-height:1.7;
-}
-
-.pending{
-  color:var(--yellow);
-  font-weight:900;
-}
-
-.won{
-  color:var(--green);
-  font-weight:900;
-}
-
-.lost{
-  color:var(--red);
-  font-weight:900;
-}
-
-.notice{
-  background:rgba(255,200,87,.08);
-  border:1px solid rgba(255,200,87,.2);
-  color:#f4d58d;
-  border-radius:11px;
-  padding:12px;
-  font-size:10px;
-  line-height:1.6;
-  margin-top:12px;
-}
+/* BOTTOM NAVIGATION */
 
 .bottom-nav{
   position:fixed;
   bottom:0;
   left:0;
   right:0;
-  z-index:30;
+  z-index:40;
   background:rgba(7,20,38,.98);
   border-top:1px solid var(--border);
   display:flex;
@@ -571,7 +763,6 @@ main{
   max-width:760px;
   display:grid;
   grid-template-columns:repeat(5,1fr);
-  gap:2px;
 }
 
 .nav-btn{
@@ -580,7 +771,7 @@ main{
   color:var(--muted);
   padding:8px 2px;
   font-size:9px;
-  font-weight:800;
+  font-weight:900;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -588,21 +779,17 @@ main{
 }
 
 .nav-icon{
-  font-size:18px;
+  font-size:19px;
 }
 
 .nav-btn.active{
-  color:var(--cyan);
-}
-
-.hidden{
-  display:none!important;
+  color:var(--green2);
 }
 
 @media(min-width:600px){
-  .stats-grid{
-    grid-template-columns:repeat(4,1fr);
-  }
+  .stats-grid{grid-template-columns:repeat(4,1fr)}
+  .team-name{font-size:14px}
+  .team-logo{width:49px;height:49px;flex-basis:49px}
 }
 </style>
 </head>
@@ -624,7 +811,8 @@ main{
 
 <main>
 
-<!-- HOME / DASHBOARD -->
+<!-- DASHBOARD -->
+
 <section class="page active" id="home">
 
   <div class="page-title">Dashboard</div>
@@ -665,12 +853,13 @@ main{
 
 
 <!-- PREDICTIONS -->
+
 <section class="page" id="predictions">
 
   <div class="section-heading">
     <div>
       <div class="page-title">Predictions</div>
-      <div class="page-subtitle" style="margin-bottom:0">
+      <div class="page-subtitle">
         All available football fixtures.
       </div>
     </div>
@@ -688,14 +877,15 @@ main{
 </section>
 
 
-<!-- VIP PREDICTIONS -->
+<!-- VIP -->
+
 <section class="page" id="vip">
 
   <div class="section-heading">
     <div>
       <div class="page-title">VIP Predictions</div>
-      <div class="page-subtitle" style="margin-bottom:0">
-        Highest-confidence available recommendation for each match.
+      <div class="page-subtitle">
+        Highest-confidence available picks.
       </div>
     </div>
 
@@ -705,12 +895,12 @@ main{
   </div>
 
   <div class="notice">
-    VIP recommendations are model estimates, not guaranteed outcomes.
-    Matches without an available recommendation are clearly identified.
+    Recommendations are model estimates, not guaranteed outcomes.
+    Matches without available recommendations will be identified.
   </div>
 
   <div id="vipSummary" class="page-subtitle" style="margin-top:12px">
-    Preparing VIP analysis...
+    Waiting for fixtures...
   </div>
 
   <div id="vipList">
@@ -720,7 +910,8 @@ main{
 </section>
 
 
-<!-- MATCH DETAILS -->
+<!-- MATCH ANALYSIS -->
+
 <section class="page" id="match">
 
   <button class="btn secondary" onclick="showPage('predictions')">
@@ -728,47 +919,51 @@ main{
   </button>
 
   <div id="matchDetails" style="margin-top:15px">
-    <div class="loading">Loading match analysis...</div>
+    <div class="loading">Loading analysis...</div>
   </div>
 
 </section>
 
 
 <!-- HISTORY -->
+
 <section class="page" id="history">
 
   <div class="page-title">Prediction History</div>
   <div class="page-subtitle">
-    Your saved predictions and their recorded results.
+    Your saved predictions and recorded results.
   </div>
 
   <div class="panel">
     <div class="analysis-grid">
+
       <div class="analysis-box">
         <small>RECORDED PICKS</small>
         <strong id="historyTotal">0</strong>
       </div>
+
       <div class="analysis-box">
         <small>VERIFIED ACCURACY</small>
         <strong id="historyAccuracy">0%</strong>
       </div>
+
     </div>
   </div>
 
   <div id="historyList">
-    <div class="empty">No predictions have been saved yet.</div>
+    <div class="empty">No predictions saved yet.</div>
   </div>
 
   <div class="notice">
-    Picks remain pending until a verified match result is available.
-    Automatic result verification is not enabled unless a result endpoint
-    is connected to the backend.
+    Results remain pending until verified results are connected
+    to the backend.
   </div>
 
 </section>
 
 
 <!-- SETTINGS -->
+
 <section class="page" id="settings">
 
   <div class="page-title">Settings</div>
@@ -780,28 +975,36 @@ main{
     <h3 style="font-size:14px;margin-bottom:10px">
       GENERAL TIPS PRO V1.0
     </h3>
+
     <p style="font-size:11px;color:var(--muted);line-height:1.8">
-      Football fixtures and analysis are retrieved from the connected
-      backend API. Predictions are statistical estimates and should
-      not be treated as guaranteed results.
+      Football fixtures and match analysis are retrieved from the
+      connected backend API. Predictions are statistical estimates.
     </p>
   </div>
 
   <div class="panel">
-    <h3 style="font-size:13px;margin-bottom:12px">Data connection</h3>
+    <h3 style="font-size:13px;margin-bottom:12px">
+      Data connection
+    </h3>
+
     <div id="connectionStatus" style="font-size:11px;color:var(--muted)">
       Checking connection...
     </div>
+
     <button class="btn" style="margin-top:13px" onclick="checkConnection()">
       CHECK CONNECTION
     </button>
   </div>
 
   <div class="panel">
-    <h3 style="font-size:13px;margin-bottom:10px">Saved predictions</h3>
+    <h3 style="font-size:13px;margin-bottom:10px">
+      Saved predictions
+    </h3>
+
     <p style="font-size:11px;color:var(--muted);line-height:1.6">
-      Your saved picks are stored locally on this device.
+      Saved picks are stored locally on this device.
     </p>
+
     <button class="btn secondary" style="margin-top:12px"
       onclick="clearHistory()">
       CLEAR SAVED PICKS
@@ -813,7 +1016,8 @@ main{
 </main>
 
 
-<!-- BOTTOM NAVIGATION -->
+<!-- NAVIGATION -->
+
 <nav class="bottom-nav">
   <div class="nav-inner">
 
@@ -852,9 +1056,10 @@ main{
 
 
 <script>
-/* =========================================
+
+/* ======================================
    GENERAL TIPS PRO V1.0
-   ========================================= */
+   ====================================== */
 
 let currentFixtures = [];
 let currentMatch = null;
@@ -873,32 +1078,24 @@ let vipEntries = [];
 let vipCache = new Map();
 let vipBuilding = false;
 let vipBuilt = false;
-let currentPage = 'home';
 
 
-/* =========================================
-   BASIC HELPERS
-   ========================================= */
+/* ======================================
+   HELPERS
+   ====================================== */
 
 function $(id){
   return document.getElementById(id);
 }
 
 function escapeHTML(value){
-  return String(value ?? '').replace(/[&<>"']/g,function(char){
-    return {
-      '&':'&amp;',
-      '<':'&lt;',
-      '>':'&gt;',
-      '"':'&quot;',
-      "'":'&#39;'
-    }[char];
-  });
-}
-
-function number(value){
-  const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(1) : '—';
+  return String(value ?? '').replace(/[&<>"']/g,char=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  })[char]);
 }
 
 function safeNumber(value){
@@ -906,15 +1103,19 @@ function safeNumber(value){
   return Number.isFinite(n) ? n : null;
 }
 
-function getMatchId(match){
-  return match?.id ?? match?.matchId ?? match?.fixtureId ?? null;
+function getTeamObject(value){
+  return typeof value === 'object' && value !== null
+    ? value
+    : {};
 }
 
 function getTeamName(value){
   if(typeof value === 'string') return value;
+
   if(value && typeof value === 'object'){
     return value.name || value.shortName || value.tla || 'Unknown';
   }
+
   return 'Unknown';
 }
 
@@ -934,6 +1135,28 @@ function getAway(match){
     match?.teams?.away ??
     match?.teamAway
   );
+}
+
+function getHomeLogo(match){
+  const team = getTeamObject(
+    match?.homeTeam ?? match?.teams?.home ?? match?.home
+  );
+
+  return team.crest || team.logo || team.image ||
+         match?.homeTeamCrest || match?.homeLogo || '';
+}
+
+function getAwayLogo(match){
+  const team = getTeamObject(
+    match?.awayTeam ?? match?.teams?.away ?? match?.away
+  );
+
+  return team.crest || team.logo || team.image ||
+         match?.awayTeamCrest || match?.awayLogo || '';
+}
+
+function getMatchId(match){
+  return match?.id ?? match?.matchId ?? match?.fixtureId ?? null;
 }
 
 function getMatchDate(match){
@@ -963,32 +1186,30 @@ function formatDate(value){
 }
 
 function getStatus(match){
+
   const raw = String(
     match?.status ??
     match?.matchStatus ??
     'UNKNOWN'
   ).toUpperCase();
 
-  const liveStatuses = [
+  if([
     'LIVE','IN_PLAY','PAUSED','1H','2H','HT','ET','P'
-  ];
+  ].includes(raw)) return 'LIVE';
 
-  const endedStatuses = [
+  if([
     'FINISHED','FT','AET','PEN','ENDED'
-  ];
+  ].includes(raw)) return 'ENDED';
 
-  const upcomingStatuses = [
+  if([
     'SCHEDULED','TIMED','NOT_STARTED','UPCOMING'
-  ];
-
-  if(liveStatuses.includes(raw)) return 'LIVE';
-  if(endedStatuses.includes(raw)) return 'ENDED';
-  if(upcomingStatuses.includes(raw)) return 'UPCOMING';
+  ].includes(raw)) return 'UPCOMING';
 
   return raw.replace(/_/g,' ');
 }
 
 function getScore(match){
+
   const score = match?.score;
 
   if(!score) return '';
@@ -1009,6 +1230,7 @@ function getScore(match){
 }
 
 function probabilityValue(recommendation){
+
   let value = safeNumber(
     recommendation?.probability ??
     recommendation?.confidence ??
@@ -1018,13 +1240,14 @@ function probabilityValue(recommendation){
   if(value === null) return null;
 
   if(value > 0 && value <= 1){
-    value = value * 100;
+    value *= 100;
   }
 
   return Math.max(0,Math.min(100,value));
 }
 
-function riskFor(probability){
+function getRisk(probability){
+
   if(probability >= 80){
     return {label:'LOW MODEL RISK',className:'risk-low'};
   }
@@ -1036,24 +1259,43 @@ function riskFor(probability){
   return {label:'HIGH MODEL RISK',className:'risk-high'};
 }
 
+function confidenceLevel(probability){
+
+  if(probability >= 80) return 'level-high';
+  if(probability >= 65) return 'level-medium';
+  return 'level-low';
+}
+
+function confidenceBars(probability){
+
+  return `
+    <div class="confidence-bars ${confidenceLevel(probability)}">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  `;
+}
+
 function saveLocalPicks(){
   localStorage.setItem('gtp_picks',JSON.stringify(savedPicks));
 }
 
 
-/* =========================================
-   PAGE NAVIGATION
-   ========================================= */
+/* ======================================
+   NAVIGATION
+   ====================================== */
 
 function showPage(page,button){
-
-  currentPage = page;
 
   document.querySelectorAll('.page').forEach(section=>{
     section.classList.remove('active');
   });
 
   const target = $(page);
+
   if(target) target.classList.add('active');
 
   document.querySelectorAll('.nav-btn').forEach(nav=>{
@@ -1066,14 +1308,13 @@ function showPage(page,button){
     const nav = document.querySelector(
       `.nav-btn[data-page="${page}"]`
     );
+
     if(nav) nav.classList.add('active');
   }
 
   window.scrollTo({top:0,behavior:'smooth'});
 
-  if(page === 'history'){
-    renderHistory();
-  }
+  if(page === 'history') renderHistory();
 
   if(page === 'vip' && !vipBuilt && !vipBuilding){
     buildVIP(false);
@@ -1081,9 +1322,9 @@ function showPage(page,button){
 }
 
 
-/* =========================================
+/* ======================================
    DASHBOARD
-   ========================================= */
+   ====================================== */
 
 function updateDashboard(){
 
@@ -1099,10 +1340,12 @@ function updateDashboard(){
     pick.result === 'WON' || pick.result === 'LOST'
   );
 
-  const wins = graded.filter(pick=>pick.result === 'WON').length;
+  const wins = graded.filter(
+    pick=>pick.result === 'WON'
+  ).length;
 
   const accuracy = graded.length
-    ? (wins / graded.length) * 100
+    ? wins/graded.length*100
     : 0;
 
   $('accuracy').textContent =
@@ -1115,9 +1358,9 @@ function updateDashboard(){
 }
 
 
-/* =========================================
+/* ======================================
    FIXTURE API
-   ========================================= */
+   ====================================== */
 
 async function loadFixtures(){
 
@@ -1129,46 +1372,42 @@ async function loadFixtures(){
   }
 
   $('fixtureMessage').innerHTML = '';
+
   $('fixtureList').innerHTML =
     '<div class="loading">Connecting to football data...</div>';
 
   try{
 
     const response = await fetch('/api/fixtures',{
-      method:'GET',
       headers:{'Accept':'application/json'}
     });
 
     if(!response.ok){
-      throw new Error('Fixture API returned HTTP '+response.status);
+      throw new Error('Fixture API HTTP '+response.status);
     }
 
     const data = await response.json();
 
     if(!Array.isArray(data.matches)){
-      throw new Error(
-        data.message || 'The API response does not contain a matches list.'
-      );
+      throw new Error('The API did not return a matches list.');
     }
 
     currentFixtures = data.matches;
 
-    renderFixtures(currentFixtures);
-
-    // A new fixture list means VIP recommendations must be rebuilt.
     vipCache.clear();
     vipEntries = [];
     vipBuilt = false;
 
-    $('vipList').innerHTML =
-      '<div class="loading">Preparing VIP recommendations...</div>';
+    renderFixtures(currentFixtures);
 
     $('vipSummary').textContent =
-      'Analysing available matches...';
+      'Preparing analysis for available matches...';
+
+    $('vipList').innerHTML =
+      '<div class="loading">Building VIP recommendations...</div>';
 
     updateDashboard();
 
-    // Build VIP recommendations in the background.
     buildVIP(false);
 
   }catch(error){
@@ -1180,12 +1419,7 @@ async function loadFixtures(){
       </div>`;
 
     $('fixtureMessage').innerHTML =
-      '<div class="notice">Check that your backend service is running and that /api/fixtures is available.</div>';
-
-    $('vipList').innerHTML =
-      '<div class="empty">VIP recommendations are waiting for fixture data.</div>';
-
-    $('vipSummary').textContent = 'No fixture data available.';
+      '<div class="notice">Check that your backend is running and /api/fixtures is available.</div>';
 
   }finally{
 
@@ -1198,148 +1432,268 @@ async function loadFixtures(){
 }
 
 
-/* =========================================
-   FIXTURE DISPLAY
-   ========================================= */
+/* ======================================
+   DATE RANGE
+   ====================================== */
 
-function renderFixtures(matches){
+function renderDateRange(matches){
 
-  if(!matches.length){
-    $('fixtureList').innerHTML =
-      '<div class="empty">No fixtures are currently available.</div>';
-    updateDashboard();
-    return;
+  const dates = matches
+    .map(match=>getMatchDate(match))
+    .filter(Boolean)
+    .map(value=>new Date(value))
+    .filter(date=>!Number.isNaN(date.getTime()))
+    .sort((a,b)=>a-b);
+
+  if(!dates.length){
+    return `
+      <div class="date-banner">
+        <div class="date-icon">▦</div>
+        <div class="date-range">AVAILABLE MATCH FIXTURES</div>
+      </div>
+    `;
   }
 
-  $('fixtureList').innerHTML = matches.map((match,index)=>{
+  const start = dates[0].toISOString().slice(0,10);
+  const end = dates[dates.length-1].toISOString().slice(0,10);
 
-    const home = escapeHTML(getHome(match));
-    const away = escapeHTML(getAway(match));
-    const status = getStatus(match);
-    const score = getScore(match);
-    const date = formatDate(getMatchDate(match));
+  return `
+    <div class="date-banner">
+      <div class="date-icon">▦</div>
+      <div class="date-range">
+        ${escapeHTML(start)} — ${escapeHTML(end)}
+      </div>
+    </div>
+  `;
+}
 
-    const statusClass =
-      status === 'LIVE' ? 'live' :
-      status === 'ENDED' ? 'ended' : '';
 
-    const id = getMatchId(match);
-    const vip = vipCache.get(String(id));
+/* ======================================
+   MATCH RESULT BADGE
+   ====================================== */
 
-    const recommendation = vip?.recommendation;
-    const probability = vip?.probability;
+function getVerifiedResult(match){
 
-    const market = recommendation
-      ? escapeHTML(recommendation.market || recommendation.name || 'Prediction unavailable')
-      : 'ANALYSIS PENDING';
+  const value = String(
+    match?.result ??
+    match?.predictionResult ??
+    ''
+  ).toUpperCase();
 
-    const confidence = probability !== null &&
-      probability !== undefined
-      ? probability.toFixed(1)+'%'
-      : 'Awaiting analysis';
+  if(value === 'WON' || value === 'LOST'){
+    return value;
+  }
 
-    const odds = recommendation?.odds ??
-      recommendation?.price ??
-      recommendation?.decimalOdds;
+  return null;
+}
 
-    return `
-      <div class="match-card">
 
-        <div class="match-top">
-          <span class="match-date">${escapeHTML(date)}</span>
+/* ======================================
+   MATCH CARD
+   ====================================== */
 
-          <span class="status ${statusClass}">
-            ${escapeHTML(status)}
-          </span>
-        </div>
+function renderMatchCard(match,index){
 
-        <div class="teams">
+  const id = getMatchId(match);
+  const vip = id !== null
+    ? vipCache.get(String(id))
+    : null;
 
-          <div class="team">${home}</div>
+  const recommendation = vip?.recommendation || null;
+  const probability = vip?.probability ?? null;
+
+  const home = escapeHTML(getHome(match));
+  const away = escapeHTML(getAway(match));
+
+  const homeLogo = getHomeLogo(match);
+  const awayLogo = getAwayLogo(match);
+
+  const status = getStatus(match);
+  const score = getScore(match);
+
+  const date = formatDate(getMatchDate(match));
+
+  const statusClass =
+    status === 'LIVE' ? 'live' :
+    status === 'ENDED' ? 'ended' : '';
+
+  const result = getVerifiedResult(match);
+
+  const market = recommendation
+    ? recommendation.market || recommendation.name || 'Recommendation'
+    : null;
+
+  const odds =
+    recommendation?.odds ??
+    recommendation?.price ??
+    recommendation?.decimalOdds ??
+    null;
+
+  let resultHTML = '';
+
+  if(result === 'WON'){
+    resultHTML = '<span class="result-pill">WON</span>';
+  }else if(result === 'LOST'){
+    resultHTML = '<span class="result-pill lost">LOST</span>';
+  }else{
+    resultHTML = `<span class="status ${statusClass}">${escapeHTML(status)}</span>`;
+  }
+
+  const oddsHTML = odds !== null && odds !== undefined
+    ? `<span class="odds-pill">${escapeHTML(odds)}</span>`
+    : '';
+
+  let marketHTML = '';
+  let confidenceHTML = '';
+
+  if(recommendation && probability !== null){
+
+    marketHTML = `
+      <div class="prediction-market">
+        ${escapeHTML(market)}
+      </div>
+    `;
+
+    confidenceHTML = `
+      <div class="confidence-line">
+        ${confidenceBars(probability)}
+        <span>Confidence:</span>
+        <strong>
+          ${probability.toFixed(1)}%
+          · ${probability >= 75 ? 'High' : probability >= 60 ? 'Medium' : 'Low'}
+        </strong>
+      </div>
+    `;
+
+  }else{
+
+    marketHTML = `
+      <div class="prediction-market" style="font-size:12px;letter-spacing:1px">
+        ANALYSIS PENDING
+      </div>
+    `;
+
+    confidenceHTML = `
+      <div class="confidence-line">
+        Confidence:
+        <strong>Awaiting analysis</strong>
+      </div>
+    `;
+
+  }
+
+  return `
+    <div class="match-card">
+
+      <div class="match-top">
+        <span class="match-date">${escapeHTML(date)}</span>
+        ${resultHTML}
+      </div>
+
+      <div class="teams">
+
+        <div class="team-side">
 
           ${
-            score
-            ? `<div class="score">${escapeHTML(score)}</div>`
-            : `<div class="vs">VS</div>`
+            homeLogo
+            ? `<img class="team-logo"
+                src="${escapeHTML(homeLogo)}"
+                alt=""
+                onerror="this.style.display='none'">`
+            : ''
           }
 
-          <div class="team">${away}</div>
+          <div class="team-name">${home}</div>
 
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:13px;gap:8px">
+        ${
+          score
+          ? `<div class="score">${escapeHTML(score)}</div>`
+          : `<div class="vs">VS</div>`
+        }
 
-          <span class="result-pill">
-            ${escapeHTML(status)}
-          </span>
+        <div class="team-side away">
+
+          <div class="team-name">${away}</div>
 
           ${
-            odds !== undefined && odds !== null
-            ? `<span class="odds-pill">${escapeHTML(odds)}</span>`
+            awayLogo
+            ? `<img class="team-logo"
+                src="${escapeHTML(awayLogo)}"
+                alt=""
+                onerror="this.style.display='none'">`
             : ''
           }
 
         </div>
 
-        <div class="prediction-market">
-          ${market}
-        </div>
-
-        <div class="confidence-line">
-
-          <div class="confidence-bars">
-            <span></span><span></span><span></span>
-            <span></span><span></span>
-          </div>
-
-          Confidence:
-          <strong style="color:#65ffc0">
-            ${escapeHTML(confidence)}
-          </strong>
-
-        </div>
-
-        <button class="analysis-button"
-          onclick="openMatch(${index})">
-          ANALYSIS →
-        </button>
-
       </div>
-    `;
 
-  }).join('');
+      ${
+        oddsHTML
+        ? `<div class="result-row">${oddsHTML}</div>`
+        : ''
+      }
+
+      ${marketHTML}
+      ${confidenceHTML}
+
+      <button class="analysis-button"
+        onclick="openMatch(${index})">
+        ANALYSIS →
+      </button>
+
+    </div>
+  `;
+}
+
+
+function renderFixtures(matches){
+
+  if(!matches.length){
+
+    $('fixtureList').innerHTML =
+      '<div class="empty">No fixtures are currently available from your football data provider.</div>';
+
+    updateDashboard();
+    return;
+  }
+
+  $('fixtureList').innerHTML =
+    renderDateRange(matches) +
+    matches.map((match,index)=>
+      renderMatchCard(match,index)
+    ).join('');
 
   updateDashboard();
 }
 
 
-/* =========================================
+/* ======================================
    MATCH ANALYSIS API
-   ========================================= */
+   ====================================== */
 
 async function fetchAnalysis(match){
 
   const id = getMatchId(match);
 
   if(id === null || id === undefined){
-    throw new Error('This fixture does not have a valid match ID.');
+    throw new Error('Match ID is missing.');
   }
 
   const response = await fetch(
     '/api/match/'+encodeURIComponent(id)+'/analysis',
     {
-      method:'GET',
       headers:{'Accept':'application/json'}
     }
   );
 
   if(!response.ok){
-    throw new Error('Analysis API returned HTTP '+response.status);
+    throw new Error('Analysis API HTTP '+response.status);
   }
 
-  const data = await response.json();
-
-  return data;
+  return await response.json();
 }
 
 
@@ -1369,10 +1723,8 @@ async function openMatch(index){
 
     $('matchDetails').innerHTML =
       `<div class="panel error">
-        Unable to load this match analysis.<br><br>
+        Unable to load match analysis.<br>
         ${escapeHTML(error.message)}
-        <br><br>
-        Please try again later.
       </div>`;
 
   }
@@ -1391,9 +1743,9 @@ async function openMatchById(id){
 }
 
 
-/* =========================================
-   MATCH ANALYSIS DISPLAY
-   ========================================= */
+/* ======================================
+   FULL ANALYSIS DISPLAY
+   ====================================== */
 
 function renderMatchAnalysis(data){
 
@@ -1408,6 +1760,7 @@ function renderMatchAnalysis(data){
     : getAway(currentMatch);
 
   const probabilities = data.probabilities || {};
+
   const recommendations = Array.isArray(data.recommendations)
     ? data.recommendations
     : [];
@@ -1439,6 +1792,7 @@ function renderMatchAnalysis(data){
 
     html += `
       <div class="panel">
+
         <h3 style="font-size:13px;margin-bottom:10px">
           Model Analysis
         </h3>
@@ -1450,43 +1804,51 @@ function renderMatchAnalysis(data){
               : data.model.name || data.model.description || 'Analysis model'
           )}
         </p>
+
       </div>
     `;
 
   }
 
 
-  if(probabilities && Object.keys(probabilities).length){
+  if(Object.keys(probabilities).length){
 
     html += `
       <div class="panel">
+
         <h3 style="font-size:14px;margin-bottom:12px">
           Match Probabilities
         </h3>
 
         ${Object.entries(probabilities).map(([key,value])=>{
-          const val = typeof value === 'object'
-            ? safeNumber(value.probability ?? value.percentage)
-            : safeNumber(value);
+
+          let val = safeNumber(
+            typeof value === 'object'
+              ? value.probability ?? value.percentage
+              : value
+          );
 
           if(val === null) return '';
 
-          const percentage = Math.max(
-            0,Math.min(100,val <= 1 && val > 0 ? val*100 : val)
-          );
+          if(val > 0 && val <= 1) val *= 100;
+
+          val = Math.max(0,Math.min(100,val));
 
           return `
             <div style="margin-bottom:13px">
+
               <div style="display:flex;justify-content:space-between;font-size:11px">
                 <span>${escapeHTML(key.replace(/_/g,' '))}</span>
-                <strong>${percentage.toFixed(1)}%</strong>
+                <strong>${val.toFixed(1)}%</strong>
               </div>
 
               <div class="progress">
-                <span style="width:${percentage}%"></span>
+                <span style="width:${val}%"></span>
               </div>
+
             </div>
           `;
+
         }).join('')}
 
       </div>
@@ -1497,6 +1859,7 @@ function renderMatchAnalysis(data){
 
   html += `
     <div class="panel">
+
       <h3 style="font-size:14px;margin-bottom:13px">
         Available Recommendations
       </h3>
@@ -1517,16 +1880,21 @@ function renderMatchAnalysis(data){
 
       const probability = probabilityValue(recommendation);
 
-      const confidenceText = probability === null
+      const confidence = probability === null
         ? 'Not provided'
         : probability.toFixed(1)+'%';
 
       return `
         <div class="recommendation">
 
-          <h3>${escapeHTML(recommendation.market || recommendation.name || 'Recommendation')}</h3>
+          <h3>
+            ${escapeHTML(recommendation.market || recommendation.name || 'Recommendation')}
+          </h3>
 
-          <p>Model confidence: <strong>${escapeHTML(confidenceText)}</strong></p>
+          <p>
+            Model confidence:
+            <strong>${escapeHTML(confidence)}</strong>
+          </p>
 
           ${
             probability !== null
@@ -1536,7 +1904,7 @@ function renderMatchAnalysis(data){
             : ''
           }
 
-          <button class="btn green"
+          <button class="analysis-button"
             onclick="savePick(${index})">
             SAVE PICK
           </button>
@@ -1555,10 +1923,13 @@ function renderMatchAnalysis(data){
 
     html += `
       <div class="panel">
+
         <h3 style="font-size:14px;margin-bottom:10px">
           Team Form
         </h3>
+
         ${renderTeamForm(data.teamForm)}
+
       </div>
     `;
 
@@ -1583,23 +1954,19 @@ function renderMatchAnalysis(data){
 
   html += `
     <div class="notice">
-      These percentages are statistical model estimates. They do not
-      guarantee that a prediction will win.
+      Percentages are statistical model estimates and do not guarantee outcomes.
     </div>
   `;
 
   $('matchDetails').innerHTML = html;
+
 }
 
 
 function renderTeamForm(form){
 
-  if(!form) return '';
-
   if(typeof form === 'string'){
-    return `<p style="font-size:11px;color:var(--muted)">
-      ${escapeHTML(form)}
-    </p>`;
+    return `<p style="font-size:11px;color:var(--muted)">${escapeHTML(form)}</p>`;
   }
 
   if(Array.isArray(form)){
@@ -1629,9 +1996,9 @@ function renderTeamForm(form){
 }
 
 
-/* =========================================
-   SAVE PREDICTION
-   ========================================= */
+/* ======================================
+   SAVE PICK
+   ====================================== */
 
 function savePick(index){
 
@@ -1647,12 +2014,15 @@ function savePick(index){
   const recommendation = recommendations[index];
 
   if(!recommendation){
-    alert('This recommendation is not available.');
+    alert('Recommendation unavailable.');
     return;
   }
 
   const matchId = getMatchId(currentMatch);
-  const market = recommendation.market || recommendation.name || 'Prediction';
+
+  const market = recommendation.market ||
+                 recommendation.name ||
+                 'Prediction';
 
   const duplicate = savedPicks.some(pick=>
     String(pick.matchId) === String(matchId) &&
@@ -1666,31 +2036,29 @@ function savePick(index){
 
   const probability = probabilityValue(recommendation);
 
-  const pick = {
-    matchId:matchId,
+  savedPicks.unshift({
+    matchId,
     homeTeam:getHome(currentMatch),
     awayTeam:getAway(currentMatch),
     date:getMatchDate(currentMatch),
-    market:market,
-    probability:probability,
+    market,
+    probability,
     confidence:probability,
     result:'PENDING',
     savedAt:new Date().toISOString()
-  };
-
-  savedPicks.unshift(pick);
+  });
 
   saveLocalPicks();
+
   updateDashboard();
 
   alert('Prediction saved successfully.');
-
 }
 
 
-/* =========================================
-   VIP PREDICTION ENGINE
-   ========================================= */
+/* ======================================
+   VIP ENGINE
+   ====================================== */
 
 function getBestRecommendation(data){
 
@@ -1698,13 +2066,12 @@ function getBestRecommendation(data){
     ? data.recommendations
     : [];
 
-  const usable = recommendations
-    .map(recommendation=>({
-      recommendation,
-      probability:probabilityValue(recommendation)
-    }))
-    .filter(item=>item.probability !== null)
-    .sort((a,b)=>b.probability-a.probability);
+  const usable = recommendations.map(recommendation=>({
+    recommendation,
+    probability:probabilityValue(recommendation)
+  }))
+  .filter(item=>item.probability !== null)
+  .sort((a,b)=>b.probability-a.probability);
 
   return usable.length ? usable[0] : null;
 }
@@ -1718,6 +2085,7 @@ async function analyseVIPMatch(match){
     return {
       match,
       recommendation:null,
+      probability:null,
       error:'Match ID unavailable'
     };
   }
@@ -1765,14 +2133,10 @@ async function analyseVIPMatch(match){
 }
 
 
-/*
-  Process matches with a maximum of three simultaneous
-  analysis requests to avoid flooding the backend.
-*/
-
 async function processVIPQueue(matches){
 
   const results = new Array(matches.length);
+
   let nextIndex = 0;
 
   async function worker(){
@@ -1785,7 +2149,17 @@ async function processVIPQueue(matches){
 
       results[index] = await analyseVIPMatch(matches[index]);
 
-      renderVIPProgress(results.filter(Boolean));
+      const completed = results.filter(Boolean);
+
+      const available = completed.filter(
+        entry=>entry.recommendation
+      ).length;
+
+      $('vipSummary').textContent =
+        `Analysed ${completed.length} of ${matches.length} matches · ${available} recommendations available`;
+
+      // Update cards as each recommendation becomes available.
+      renderFixtures(currentFixtures);
 
     }
 
@@ -1793,9 +2167,9 @@ async function processVIPQueue(matches){
 
   const workers = [];
 
-  const workerCount = Math.min(3,matches.length);
+  const count = Math.min(3,matches.length);
 
-  for(let i=0;i<workerCount;i++){
+  for(let i=0;i<count;i++){
     workers.push(worker());
   }
 
@@ -1812,9 +2186,7 @@ async function buildVIP(forceRefresh){
   if(!currentFixtures.length){
 
     $('vipList').innerHTML =
-      '<div class="empty">No fixtures are available for VIP analysis.</div>';
-
-    $('vipSummary').textContent = 'No available fixtures.';
+      '<div class="empty">No fixtures available for VIP analysis.</div>';
 
     return;
   }
@@ -1838,11 +2210,8 @@ async function buildVIP(forceRefresh){
     button.textContent = 'ANALYSING...';
   }
 
-  $('vipSummary').textContent =
-    `Analysing ${currentFixtures.length} available matches...`;
-
   $('vipList').innerHTML =
-    '<div class="loading">Building VIP recommendations. Please wait...</div>';
+    '<div class="loading">Analysing available matches...</div>';
 
   try{
 
@@ -1864,14 +2233,15 @@ async function buildVIP(forceRefresh){
 
     renderVIP();
 
+    renderFixtures(currentFixtures);
+
     updateDashboard();
 
   }catch(error){
 
     $('vipList').innerHTML =
       `<div class="panel error">
-        VIP analysis could not be completed.
-        ${escapeHTML(error.message)}
+        VIP analysis failed: ${escapeHTML(error.message)}
       </div>`;
 
   }finally{
@@ -1884,20 +2254,13 @@ async function buildVIP(forceRefresh){
     }
 
   }
-}
-
-
-function renderVIPProgress(results){
-
-  const available = results.filter(
-    entry=>entry.recommendation
-  ).length;
-
-  $('vipSummary').textContent =
-    `Analysed ${results.length} of ${currentFixtures.length} matches · ${available} recommendations available`;
 
 }
 
+
+/* ======================================
+   VIP DISPLAY
+   ====================================== */
 
 function renderVIP(){
 
@@ -1916,130 +2279,164 @@ function renderVIP(){
   if(!vipEntries.length){
 
     $('vipList').innerHTML =
-      '<div class="empty">No VIP analysis is available.</div>';
+      '<div class="empty">No VIP analysis available.</div>';
 
     return;
   }
 
+  $('vipList').innerHTML = renderDateRange(currentFixtures) +
+    vipEntries.map((entry,index)=>{
 
-  $('vipList').innerHTML = vipEntries.map((entry,index)=>{
+      const match = entry.match;
 
-    const match = entry.match;
+      const home = escapeHTML(getHome(match));
+      const away = escapeHTML(getAway(match));
 
-    const home = escapeHTML(getHome(match));
-    const away = escapeHTML(getAway(match));
-    const date = escapeHTML(formatDate(getMatchDate(match)));
-    const status = escapeHTML(getStatus(match));
+      const homeLogo = getHomeLogo(match);
+      const awayLogo = getAwayLogo(match);
 
-    if(!entry.recommendation){
+      const date = formatDate(getMatchDate(match));
+      const status = getStatus(match);
+      const score = getScore(match);
+
+      if(!entry.recommendation){
+
+        return `
+          <div class="vip-card">
+
+            <div class="vip-rank">MATCH #${index+1}</div>
+
+            <div class="teams">
+
+              <div class="team-side">
+                ${homeLogo ? `<img class="team-logo" src="${escapeHTML(homeLogo)}" alt="" onerror="this.style.display='none'">` : ''}
+                <div class="team-name">${home}</div>
+              </div>
+
+              <div class="vs">VS</div>
+
+              <div class="team-side away">
+                <div class="team-name">${away}</div>
+                ${awayLogo ? `<img class="team-logo" src="${escapeHTML(awayLogo)}" alt="" onerror="this.style.display='none'">` : ''}
+              </div>
+
+            </div>
+
+            <div class="vip-details">
+              <span class="small-badge">${escapeHTML(status)}</span>
+              <span class="small-badge">${escapeHTML(date)}</span>
+            </div>
+
+            <div class="unavailable">
+              Recommendation unavailable for this match.
+            </div>
+
+            <button class="analysis-button"
+              onclick="openMatchById('${escapeHTML(entry.matchId)}')">
+              ANALYSIS →
+            </button>
+
+          </div>
+        `;
+
+      }
+
+      const recommendation = entry.recommendation;
+      const probability = entry.probability;
+      const risk = getRisk(probability);
+
+      const odds =
+        recommendation.odds ??
+        recommendation.price ??
+        recommendation.decimalOdds ??
+        null;
 
       return `
         <div class="vip-card">
 
           <div class="vip-rank">
-            MATCH ${index+1}
+            VIP RANK #${index+1}
           </div>
 
-          <div class="teams" style="margin-top:12px">
-            <div class="team">${home}</div>
-            <div class="vs">VS</div>
-            <div class="team">${away}</div>
+          <div class="match-top">
+            <span class="match-date">${escapeHTML(date)}</span>
+            <span class="status ${status==='LIVE'?'live':status==='ENDED'?'ended':''}">
+              ${escapeHTML(status)}
+            </span>
           </div>
 
-          <div class="vip-details">
-            <span class="small-badge">${status}</span>
-            <span class="small-badge">${date}</span>
+          <div class="teams">
+
+            <div class="team-side">
+              ${homeLogo ? `<img class="team-logo" src="${escapeHTML(homeLogo)}" alt="" onerror="this.style.display='none'">` : ''}
+              <div class="team-name">${home}</div>
+            </div>
+
+            ${
+              score
+              ? `<div class="score">${escapeHTML(score)}</div>`
+              : `<div class="vs">VS</div>`
+            }
+
+            <div class="team-side away">
+              <div class="team-name">${away}</div>
+              ${awayLogo ? `<img class="team-logo" src="${escapeHTML(awayLogo)}" alt="" onerror="this.style.display='none'">` : ''}
+            </div>
+
           </div>
 
-          <div class="unavailable">
-            Recommendation unavailable for this match.
+          <div class="vip-pick">
+
+            <div class="vip-rank">
+              HIGHEST-CONFIDENCE AVAILABLE PICK
+            </div>
+
+            <div class="prediction-market">
+              ${escapeHTML(recommendation.market || recommendation.name || 'Recommendation')}
+            </div>
+
+            <div class="vip-confidence">
+              ${probability.toFixed(1)}%
+            </div>
+
+            <div class="confidence-line">
+              ${confidenceBars(probability)}
+              <span>Confidence:</span>
+              <strong>${probability >= 75 ? 'High' : probability >= 60 ? 'Medium' : 'Low'}</strong>
+            </div>
+
+            <div class="vip-details">
+
+              <span class="small-badge ${risk.className}">
+                ${risk.label}
+              </span>
+
+              ${
+                odds !== null && odds !== undefined
+                ? `<span class="small-badge">ODDS ${escapeHTML(odds)}</span>`
+                : ''
+              }
+
+            </div>
+
           </div>
 
-          <button class="btn secondary"
-            style="margin-top:12px"
+          <button class="analysis-button"
             onclick="openMatchById('${escapeHTML(entry.matchId)}')">
-            VIEW ANALYSIS
+            ANALYSIS →
           </button>
 
         </div>
       `;
-    }
 
-
-    const recommendation = entry.recommendation;
-    const probability = entry.probability;
-    const risk = riskFor(probability);
-
-    const market = escapeHTML(
-      recommendation.market ||
-      recommendation.name ||
-      'Recommendation'
-    );
-
-    const score = getScore(match);
-
-    return `
-      <div class="vip-card">
-
-        <div class="vip-rank">
-          VIP RANK #${index+1}
-        </div>
-
-        <div class="teams" style="margin-top:12px">
-          <div class="team">${home}</div>
-
-          ${
-            score
-            ? `<div class="score">${escapeHTML(score)}</div>`
-            : `<div class="vs">VS</div>`
-          }
-
-          <div class="team">${away}</div>
-        </div>
-
-        <div class="vip-details">
-          <span class="small-badge">${status}</span>
-          <span class="small-badge">${date}</span>
-        </div>
-
-        <div class="vip-pick">
-
-          <div class="vip-rank">HIGHEST-CONFIDENCE AVAILABLE PICK</div>
-
-          <div class="vip-market">${market}</div>
-
-          <div class="vip-confidence">
-            ${probability.toFixed(1)}%
-          </div>
-
-          <div class="vip-details">
-            <span class="small-badge ${risk.className}">
-              ${risk.label}
-            </span>
-            <span class="small-badge">
-              MODEL ESTIMATE
-            </span>
-          </div>
-
-        </div>
-
-        <button class="analysis-button"
-  onclick="openMatchById('${escapeHTML(entry.matchId)}')">
-  ANALYSIS →
-</button>
-
-                   
-      </div>
-    `;
-
-  }).join('');
+    }).join('');
 
 }
 
 
-/* =========================================
+/* ======================================
    HISTORY
-   ========================================= */
+   ====================================== */
 
 function renderHistory(){
 
@@ -2048,12 +2445,12 @@ function renderHistory(){
   if(!savedPicks.length){
 
     $('historyList').innerHTML =
-      '<div class="empty">No predictions have been saved yet.<br>Save a recommendation from a match analysis to see it here.</div>';
+      '<div class="empty">No predictions saved yet.<br>Save a recommendation from match analysis.</div>';
 
     return;
   }
 
-  $('historyList').innerHTML = savedPicks.map((pick,index)=>{
+  $('historyList').innerHTML = savedPicks.map(pick=>{
 
     const result = pick.result || 'PENDING';
 
@@ -2061,7 +2458,8 @@ function renderHistory(){
       result === 'WON' ? 'won' :
       result === 'LOST' ? 'lost' : 'pending';
 
-    const confidence = pick.probability === null ||
+    const confidence =
+      pick.probability === null ||
       pick.probability === undefined
       ? 'Not provided'
       : Number(pick.probability).toFixed(1)+'%';
@@ -2077,7 +2475,7 @@ function renderHistory(){
 
         <p>
           <strong>Market:</strong> ${escapeHTML(pick.market)}<br>
-          <strong>Model confidence:</strong> ${escapeHTML(confidence)}<br>
+          <strong>Confidence:</strong> ${escapeHTML(confidence)}<br>
           <strong>Match date:</strong> ${escapeHTML(formatDate(pick.date))}<br>
           <strong>Saved:</strong> ${escapeHTML(formatDate(pick.savedAt))}<br>
           <strong>Result:</strong>
@@ -2094,11 +2492,9 @@ function renderHistory(){
 
 function clearHistory(){
 
-  const confirmed = confirm(
-    'Are you sure you want to clear all saved predictions on this device?'
-  );
-
-  if(!confirmed) return;
+  if(!confirm('Clear all saved predictions on this device?')){
+    return;
+  }
 
   savedPicks = [];
 
@@ -2110,20 +2506,18 @@ function clearHistory(){
 }
 
 
-/* =========================================
+/* ======================================
    CONNECTION CHECK
-   ========================================= */
+   ====================================== */
 
 async function checkConnection(){
 
-  $('connectionStatus').textContent = 'Checking backend connection...';
+  $('connectionStatus').textContent =
+    'Checking backend connection...';
 
   try{
 
-    const response = await fetch('/api/fixtures',{
-      method:'GET',
-      headers:{'Accept':'application/json'}
-    });
+    const response = await fetch('/api/fixtures');
 
     if(!response.ok){
       throw new Error('HTTP '+response.status);
@@ -2136,15 +2530,15 @@ async function checkConnection(){
     }
 
     $('connectionStatus').innerHTML =
-      `<span style="color:var(--green);font-weight:800">
+      `<span style="color:var(--green);font-weight:900">
         CONNECTED
       </span><br>
-      Backend is responding. ${data.matches.length} fixtures received.`;
+      Backend responding. ${data.matches.length} fixtures received.`;
 
   }catch(error){
 
     $('connectionStatus').innerHTML =
-      `<span style="color:var(--red);font-weight:800">
+      `<span style="color:var(--red);font-weight:900">
         CONNECTION ERROR
       </span><br>
       ${escapeHTML(error.message)}`;
@@ -2154,9 +2548,9 @@ async function checkConnection(){
 }
 
 
-/* =========================================
-   START APPLICATION
-   ========================================= */
+/* ======================================
+   START APP
+   ====================================== */
 
 updateDashboard();
 loadFixtures();
