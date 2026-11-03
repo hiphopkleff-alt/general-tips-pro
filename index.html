@@ -1882,89 +1882,93 @@ function renderMatchAnalysis(data){
   const topRecommendations =
     availableRecommendations.slice(0,3);
 
+/* RECOMMENDATION CARDS — MATCH PREDICTIONS PAGE DESIGN */
 
-  /* RECOMMENDATION CARDS */
+let recommendationsHTML = '';
 
-  let recommendationsHTML = '';
+if (availableRecommendations.length > 0) {
 
-  if(topRecommendations.length){
+  const homeLogo = getHomeLogo(match);
+  const awayLogo = getAwayLogo(match);
+  const matchStatus = getStatus(match);
 
-    recommendationsHTML = topRecommendations.map(
-      (item,index)=>{
+  const statusClass =
+    matchStatus === 'LIVE' ? 'live' :
+    matchStatus === 'ENDED' ? 'ended' : '';
 
-        const probability = item.probability;
+  recommendationsHTML = availableRecommendations
+    .slice(0, 3)
+    .map((item, index) => {
 
-        const risk = getRisk(probability);
+      const probability = Number(item.probability);
 
-        return `
+      const confidence =
+        probability >= 75 ? 'HIGH' :
+        probability >= 60 ? 'MEDIUM' : 'LOW';
 
-          <div class="recommendation-card">
+      const homeImage = homeLogo
+        ? `<img class="team-logo" src="${homeLogo}" onerror="this.style.display='none'">`
+        : '';
 
-            <div class="recommendation-top">
+      const awayImage = awayLogo
+        ? `<img class="team-logo" src="${awayLogo}" onerror="this.style.display='none'">`
+        : '';
 
-              <span class="recommendation-number">
-                PICK ${index+1}
-              </span>
+      return `
+        <div class="match-card">
 
-              ${
-                risk
-                ? `<span class="${risk.className}">
-                    ${risk.label}
-                  </span>`
-                : ''
-              }
+          <div class="match-top">
+            <span class="match-date">TOP RECOMMENDATION</span>
+            <span class="status ${statusClass}">
+              ${matchStatus}
+            </span>
+          </div>
 
+          <div class="vip-rank">
+            PICK #${index + 1}
+          </div>
+
+          <div class="teams">
+
+            <div class="team-side">
+              ${homeImage}
+              <div class="team-name">${home}</div>
             </div>
 
-            <div class="recommendation-market">
-              ${escapeHTML(item.market)}
-            </div>
+            <div class="vs">VS</div>
 
-            <div class="recommendation-details">
-
-              <div>
-                <small>MODEL PROBABILITY</small>
-
-                <strong>
-                  ${probability.toFixed(1)}%
-                </strong>
-              </div>
-
-              <div>
-                <small>ODDS</small>
-
-                <strong>
-                  ${
-                    item.odds === null
-                    ? 'Not supplied'
-                    : escapeHTML(item.odds)
-                  }
-                </strong>
-              </div>
-
+            <div class="team-side away">
+              <div class="team-name">${away}</div>
+              ${awayImage}
             </div>
 
           </div>
 
-        `;
+          <div class="prediction-market">
+            ${item.market}
+          </div>
 
-      }
-    ).join('');
+          <div class="confidence-line">
+            ${confidenceBars(probability)}
+            <span>Confidence:</span>
+            <strong>
+              ${probability.toFixed(1)}% · ${confidence}
+            </strong>
+          </div>
 
-  }else{
+        </div>
+      `;
+    })
+    .join('');
 
-    recommendationsHTML = `
+} else {
 
-      <div class="empty">
-
-        No verified market probabilities are
-        available for this match yet.
-
-      </div>
-
-    `;
-
-  }
+  recommendationsHTML = `
+    <div class="empty-state">
+      No verified market probabilities available yet.
+    </div>
+  `;
+}
 
 
   /* TEAM FORM — KEEP EXISTING DESIGN */
