@@ -7,7 +7,7 @@
 <title>GENERAL TIPS PRO V1.0</title>
 
 <style>
-:root {
+:root{
   --bg:#071426;
   --panel:#10223a;
   --panel2:#142b47;
@@ -17,271 +17,592 @@
   --muted:#8fa4bd;
   --green:#21d69a;
   --red:#ff6578;
+  --yellow:#ffc857;
   --border:rgba(130,170,220,.15);
 }
 
-* {box-sizing:border-box}
-
-body {
+*{
+  box-sizing:border-box;
   margin:0;
-  background:
-    radial-gradient(ellipse at 15% 0%,#15365b 0%,transparent 42%),
-    linear-gradient(145deg,#071426,#091a30 55%,#06111f);
+  padding:0;
+}
+
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:linear-gradient(160deg,#071426,#091b31 55%,#061120);
   color:var(--white);
-  font-family:Arial,sans-serif;
   min-height:100vh;
-  padding-bottom:85px;
+  padding-bottom:90px;
 }
 
-header {
-  padding:20px 17px;
-  background:rgba(7,20,38,.85);
-  border-bottom:1px solid var(--border);
-  position:sticky;
-  top:0;
-  z-index:5;
-  backdrop-filter:blur(14px);
-}
-
-.brand {
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.logo {
-  width:46px;
-  height:46px;
-  border-radius:14px;
-  display:grid;
-  place-items:center;
-  font-size:24px;
-  background:linear-gradient(135deg,#1679ed,#35d5ff);
-  box-shadow:0 5px 25px #168cff55;
-}
-
-.brand h1 {
-  margin:0;
-  font-size:19px;
-  letter-spacing:1px;
-}
-
-.brand p {
-  margin:5px 0 0;
-  color:var(--muted);
-  font-size:10px;
-  letter-spacing:1.2px;
-}
-
-.version {
-  margin-left:auto;
-  border:1px solid #258cff66;
-  color:var(--cyan);
-  border-radius:20px;
-  padding:6px 9px;
-  font-size:10px;
-}
-
-main {
-  max-width:760px;
-  margin:auto;
-  padding:17px;
-}
-
-.welcome {
-  padding:23px 20px;
-  border-radius:20px;
-  background:linear-gradient(120deg,#143e6b,#102440 70%);
-  border:1px solid #358dff44;
-  margin-bottom:20px;
-  position:relative;
-  overflow:hidden;
-}
-
-.welcome:after {
-  content:"⚽";
-  position:absolute;
-  right:12px;
-  top:20px;
-  font-size:75px;
-  opacity:.12;
-}
-
-.welcome small {
-  color:var(--cyan);
-  letter-spacing:2px;
-  font-size:10px;
-}
-
-.welcome h2 {
-  font-size:24px;
-  margin:12px 0 8px;
-}
-
-.welcome p {
-  color:#c0d1e7;
-  font-size:12px;
-  line-height:1.6;
-  max-width:260px;
-}
-
-.section-title {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin:25px 0 13px;
-}
-
-.section-title h3 {
-  font-size:15px;
-  margin:0;
-}
-
-.section-title span {
-  font-size:10px;
-  color:var(--cyan);
-}
-
-.stats {
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:11px;
-}
-
-.stat {
-  background:linear-gradient(145deg,var(--panel2),var(--panel));
-  padding:16px;
-  border:1px solid var(--border);
-  border-radius:15px;
-}
-
-.stat small {
-  color:var(--muted);
-  font-size:10px;
-}
-
-.stat strong {
-  display:block;
-  margin-top:9px;
-  font-size:20px;
-}
-
-.panel {
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:17px;
-  padding:17px;
-  margin-bottom:13px;
-}
-
-.empty {
-  text-align:center;
-  padding:30px 15px;
-  color:var(--muted);
-  line-height:1.7;
-  font-size:12px;
-}
-
-.empty .icon {
-  font-size:35px;
-  margin-bottom:10px;
-}
-
-.btn {
-  background:linear-gradient(100deg,#1677ee,#27b9ff);
-  border:0;
-  color:white;
-  border-radius:10px;
-  padding:12px 17px;
-  font-weight:bold;
-  font-size:11px;
+button{
+  font-family:inherit;
   cursor:pointer;
 }
 
-.btn.secondary {
-  background:#173553;
-  border:1px solid #3988d4;
+header{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:rgba(7,20,38,.96);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:13px 15px;
 }
 
-.btn:disabled {
+.header-inner{
+  max-width:760px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.logo{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:21px;
+  font-weight:900;
+  color:white;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  box-shadow:0 4px 18px rgba(37,140,255,.25);
+}
+
+.brand h1{
+  font-size:15px;
+  letter-spacing:.5px;
+}
+
+.brand p{
+  font-size:9px;
+  color:var(--muted);
+  margin-top:4px;
+  letter-spacing:1px;
+}
+
+.version{
+  font-size:10px;
+  color:var(--cyan);
+  border:1px solid rgba(56,216,255,.3);
+  padding:6px 9px;
+  border-radius:20px;
+  white-space:nowrap;
+}
+
+main{
+  width:100%;
+  max-width:760px;
+  margin:auto;
+  padding:15px;
+}
+
+.page{
+  display:none;
+  animation:fade .2s ease;
+}
+
+.page.active{
+  display:block;
+}
+
+@keyframes fade{
+  from{opacity:.5;transform:translateY(4px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.page-title{
+  font-size:21px;
+  font-weight:800;
+  margin:5px 0 5px;
+}
+
+.page-subtitle{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+  margin-bottom:17px;
+}
+
+.panel{
+  background:linear-gradient(145deg,var(--panel),#0d1e33);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:15px;
+  margin-bottom:13px;
+}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:11px;
+  margin-top:18px;
+}
+
+.stat-card{
+  background:linear-gradient(145deg,#112945,#0d1e33);
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:16px 13px;
+  min-height:105px;
+}
+
+.stat-label{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.7px;
+  line-height:1.5;
+}
+
+.stat-number{
+  font-size:27px;
+  font-weight:900;
+  margin-top:12px;
+  color:var(--white);
+}
+
+.stat-card:nth-child(1) .stat-number{
+  color:var(--cyan);
+}
+
+.stat-card:nth-child(2) .stat-number{
+  color:var(--green);
+}
+
+.stat-card:nth-child(3) .stat-number{
+  color:var(--blue);
+}
+
+.stat-card:nth-child(4) .stat-number{
+  color:var(--yellow);
+}
+
+.history-link{
+  width:100%;
+  margin-top:14px;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:linear-gradient(100deg,#1269c5,#168fc9);
+  border:0;
+  border-radius:13px;
+  color:white;
+  font-size:13px;
+  font-weight:800;
+}
+
+.section-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:17px 0 13px;
+}
+
+.section-heading h2{
+  font-size:16px;
+}
+
+.btn{
+  border:0;
+  border-radius:9px;
+  padding:10px 13px;
+  font-size:11px;
+  font-weight:800;
+  color:white;
+  background:var(--blue);
+}
+
+.btn.secondary{
+  background:#1c3858;
+  border:1px solid var(--border);
+}
+
+.btn.green{
+  background:#087e62;
+}
+
+.btn:disabled{
   opacity:.5;
   cursor:not-allowed;
 }
 
-.page {display:none}
-.page.active {display:block}
-
-.match {
-  padding:15px;
+.match-card{
+  background:linear-gradient(145deg,#102640,#0c1d32);
   border:1px solid var(--border);
-  background:var(--panel);
   border-radius:15px;
+  padding:14px;
   margin-bottom:11px;
-  cursor:pointer;
 }
 
-.match strong {
-  font-size:13px;
+.match-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:13px;
 }
 
-.match small {
+.match-date{
   color:var(--muted);
-  display:block;
-  margin-top:8px;
-}
-
-.status {
-  color:var(--cyan);
   font-size:10px;
-  float:right;
 }
 
-.bottom-nav {
+.status{
+  font-size:9px;
+  font-weight:900;
+  padding:6px 9px;
+  border-radius:20px;
+  background:rgba(37,140,255,.15);
+  color:var(--cyan);
+}
+
+.status.live{
+  color:var(--green);
+  background:rgba(33,214,154,.12);
+}
+
+.status.ended{
+  color:var(--yellow);
+  background:rgba(255,200,87,.12);
+}
+
+.teams{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:8px;
+}
+
+.team{
+  font-size:13px;
+  font-weight:800;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+}
+
+.team:last-child{
+  text-align:right;
+}
+
+.vs{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+}
+
+.score{
+  color:var(--green);
+  font-size:16px;
+  font-weight:900;
+  text-align:center;
+  white-space:nowrap;
+}
+
+.match-bottom{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-top:13px;
+  padding-top:11px;
+  border-top:1px solid var(--border);
+}
+
+.match-meta{
+  color:var(--muted);
+  font-size:10px;
+}
+
+.vip-card{
+  border:1px solid rgba(56,216,255,.23);
+  background:linear-gradient(145deg,#102c49,#0b1d32);
+  border-radius:15px;
+  padding:15px;
+  margin-bottom:12px;
+}
+
+.vip-rank{
+  font-size:10px;
+  color:var(--cyan);
+  font-weight:900;
+  letter-spacing:.8px;
+}
+
+.vip-pick{
+  margin-top:13px;
+  padding:12px;
+  border-radius:11px;
+  background:rgba(56,216,255,.07);
+  border:1px solid rgba(56,216,255,.14);
+}
+
+.vip-market{
+  font-size:14px;
+  font-weight:900;
+  line-height:1.4;
+}
+
+.vip-confidence{
+  color:var(--green);
+  font-size:22px;
+  font-weight:900;
+  margin-top:7px;
+}
+
+.vip-details{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:10px;
+}
+
+.small-badge{
+  font-size:9px;
+  padding:6px 8px;
+  border-radius:20px;
+  background:#1a3858;
+  color:#c7e4ff;
+}
+
+.risk-low{
+  color:var(--green);
+  background:rgba(33,214,154,.12);
+}
+
+.risk-medium{
+  color:var(--yellow);
+  background:rgba(255,200,87,.12);
+}
+
+.risk-high{
+  color:var(--red);
+  background:rgba(255,101,120,.12);
+}
+
+.unavailable{
+  color:var(--yellow);
+  font-size:12px;
+  margin-top:12px;
+  line-height:1.5;
+}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  padding:28px 15px;
+  font-size:12px;
+  line-height:1.7;
+}
+
+.loading{
+  text-align:center;
+  color:var(--cyan);
+  padding:25px 12px;
+  font-size:12px;
+}
+
+.error{
+  color:var(--red);
+  font-size:12px;
+  line-height:1.6;
+}
+
+.analysis-title{
+  font-size:16px;
+  font-weight:900;
+  margin-bottom:12px;
+}
+
+.analysis-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin:12px 0;
+}
+
+.analysis-box{
+  background:#0b1c30;
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:12px;
+}
+
+.analysis-box small{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  margin-bottom:7px;
+}
+
+.analysis-box strong{
+  font-size:16px;
+}
+
+.recommendation{
+  background:#0c2037;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:13px;
+  margin-bottom:10px;
+}
+
+.recommendation h3{
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+.recommendation p{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+  margin:5px 0;
+}
+
+.progress{
+  height:7px;
+  background:#20344c;
+  border-radius:10px;
+  overflow:hidden;
+  margin:9px 0;
+}
+
+.progress span{
+  display:block;
+  height:100%;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));
+  border-radius:10px;
+}
+
+.form-row{
+  margin:13px 0;
+}
+
+.form-row label{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:7px;
+}
+
+.form-row input,
+.form-row select{
+  width:100%;
+  background:#091a2d;
+  border:1px solid var(--border);
+  color:white;
+  padding:12px;
+  border-radius:9px;
+  outline:none;
+}
+
+.history-item{
+  border:1px solid var(--border);
+  background:#0e2239;
+  border-radius:13px;
+  padding:13px;
+  margin-bottom:10px;
+}
+
+.history-item h3{
+  font-size:13px;
+  margin-bottom:7px;
+}
+
+.history-item p{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.7;
+}
+
+.pending{
+  color:var(--yellow);
+  font-weight:900;
+}
+
+.won{
+  color:var(--green);
+  font-weight:900;
+}
+
+.lost{
+  color:var(--red);
+  font-weight:900;
+}
+
+.notice{
+  background:rgba(255,200,87,.08);
+  border:1px solid rgba(255,200,87,.2);
+  color:#f4d58d;
+  border-radius:11px;
+  padding:12px;
+  font-size:10px;
+  line-height:1.6;
+  margin-top:12px;
+}
+
+.bottom-nav{
   position:fixed;
   bottom:0;
   left:0;
   right:0;
-  z-index:10;
-  background:#09182b;
+  z-index:30;
+  background:rgba(7,20,38,.98);
   border-top:1px solid var(--border);
   display:flex;
-  justify-content:space-around;
-  padding:10px 3px 13px;
+  justify-content:center;
+  padding:9px 3px calc(9px + env(safe-area-inset-bottom));
 }
 
-.nav-item {
+.nav-inner{
+  width:100%;
+  max-width:760px;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:2px;
+}
+
+.nav-btn{
+  background:transparent;
   border:0;
-  background:none;
   color:var(--muted);
-  font-size:10px;
-  cursor:pointer;
-  padding:5px;
+  padding:8px 2px;
+  font-size:9px;
+  font-weight:800;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
 }
 
-.nav-item span {
-  display:block;
-  font-size:20px;
-  margin-bottom:5px;
+.nav-icon{
+  font-size:18px;
 }
 
-.nav-item.active {
+.nav-btn.active{
   color:var(--cyan);
 }
 
-.notice {
-  font-size:10px;
-  color:var(--muted);
-  text-align:center;
-  line-height:1.6;
-  margin:22px 5px;
+.hidden{
+  display:none!important;
 }
 
-.back {
-  margin-bottom:15px;
-}
-
-@media(min-width:600px) {
-  .stats {grid-template-columns:repeat(4,1fr)}
+@media(min-width:600px){
+  .stats-grid{
+    grid-template-columns:repeat(4,1fr);
+  }
 }
 </style>
 </head>
@@ -289,11 +610,13 @@ main {
 <body>
 
 <header>
-  <div class="brand">
-    <div class="logo">⚽</div>
-    <div>
-      <h1>GENERAL TIPS PRO</h1>
-      <p>SMART FOOTBALL INTELLIGENCE</p>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo">⚽</div>
+      <div>
+        <h1>GENERAL TIPS PRO</h1>
+        <p>SMART FOOTBALL ANALYSIS</p>
+      </div>
     </div>
     <div class="version">V1.0</div>
   </div>
@@ -301,218 +624,336 @@ main {
 
 <main>
 
-<!-- HOME -->
-<section id="home" class="page active">
+<!-- HOME / DASHBOARD -->
+<section class="page active" id="home">
 
-  <div class="welcome">
-    <small>WELCOME TO YOUR FOOTBALL CENTRE</small>
-    <h2>Smarter Match Analysis.</h2>
-    <p>Real football data. Statistical predictions. Transparent performance tracking.</p>
+  <div class="page-title">Dashboard</div>
+  <div class="page-subtitle">
+    Your football prediction overview.
   </div>
 
-  <div class="section-title">
-    <h3>YOUR DASHBOARD</h3>
-    <span>OVERVIEW</span>
-  </div>
+  <div class="stats-grid">
 
-  <div class="stats">
-    <div class="stat">
-      <small>UPCOMING MATCHES</small>
-      <strong id="upcomingCount">—</strong>
+    <div class="stat-card">
+      <div class="stat-label">PREDICTIONS</div>
+      <div class="stat-number" id="predictionCount">0</div>
     </div>
 
-    <div class="stat">
-      <small>LIVE MATCHES</small>
-      <strong id="liveCount">—</strong>
+    <div class="stat-card">
+      <div class="stat-label">VIP PREDICTIONS</div>
+      <div class="stat-number" id="vipCount">0</div>
     </div>
 
-    <div class="stat">
-      <small>RECORDED PICKS</small>
-      <strong id="recordedCount">0</strong>
+    <div class="stat-card">
+      <div class="stat-label">RECORDED PICKS</div>
+      <div class="stat-number" id="recordedCount">0</div>
     </div>
 
-    <div class="stat">
-      <small>VERIFIED ACCURACY</small>
-      <strong id="accuracy">—</strong>
-    </div>
-  </div>
-
-  <div class="section-title">
-    <h3>FOOTBALL CENTRE</h3>
-    <span>REAL DATA</span>
-  </div>
-
-  <div class="panel">
-    <strong>⚽ Real Football Fixtures</strong>
-    <p style="color:var(--muted);font-size:12px;line-height:1.6">
-      Browse upcoming, live and completed football matches.
-      Select any match to see its recommendations.
-    </p>
-    <button class="btn" onclick="showPage('fixtures')">
-      OPEN MATCH CENTRE →
-    </button>
-  </div>
-
-  <div class="panel">
-    <strong>📊 Prediction History</strong>
-    <p style="color:var(--muted);font-size:12px">
-      Track every saved prediction, including correct and incorrect results.
-    </p>
-    <button class="btn secondary" onclick="showPage('history')">
-      VIEW HISTORY
-    </button>
-  </div>
-
-</section>
-
-<!-- FIXTURES -->
-<section id="fixtures" class="page">
-
-  <div class="section-title">
-    <h3>REAL FOOTBALL</h3>
-    <span>FIXTURES & RESULTS</span>
-  </div>
-
-  <div class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <strong>Match Centre</strong>
-      <button class="btn" id="refreshBtn" onclick="loadFixtures()">
-        ↻ REFRESH
-      </button>
+    <div class="stat-card">
+      <div class="stat-label">VERIFIED ACCURACY</div>
+      <div class="stat-number" id="accuracy">0%</div>
     </div>
 
-    <p style="font-size:11px;color:var(--muted)">
-      Real fixtures will appear here when the backend is connected.
-    </p>
   </div>
 
-  <div id="fixtureList" class="empty">
-    <div class="icon">⚽</div>
-    <strong>FIXTURES NOT CONNECTED YET</strong>
-    <br>
-    The real football data connection will be added in the next development stage.
-  </div>
-
-</section>
-
-<!-- MATCH DETAILS -->
-<section id="match" class="page">
-
-  <button class="btn secondary back" onclick="showPage('fixtures')">
-    ← BACK TO FIXTURES
+  <button class="history-link" onclick="showPage('history')">
+    <span>VIEW HISTORY</span>
+    <span>→</span>
   </button>
 
-  <div class="panel" id="matchDetails">
-    <div class="empty">Select a fixture to view its analysis.</div>
+</section>
+
+
+<!-- PREDICTIONS -->
+<section class="page" id="predictions">
+
+  <div class="section-heading">
+    <div>
+      <div class="page-title">Predictions</div>
+      <div class="page-subtitle" style="margin-bottom:0">
+        All available football fixtures.
+      </div>
+    </div>
+
+    <button class="btn" id="refreshBtn" onclick="loadFixtures()">
+      REFRESH
+    </button>
+  </div>
+
+  <div id="fixtureMessage"></div>
+  <div id="fixtureList">
+    <div class="loading">Loading football fixtures...</div>
   </div>
 
 </section>
 
-<!-- HISTORY -->
-<section id="history" class="page">
 
-  <div class="section-title">
-    <h3>PREDICTION HISTORY</h3>
-    <span>TRACK RECORD</span>
+<!-- VIP PREDICTIONS -->
+<section class="page" id="vip">
+
+  <div class="section-heading">
+    <div>
+      <div class="page-title">VIP Predictions</div>
+      <div class="page-subtitle" style="margin-bottom:0">
+        Highest-confidence available recommendation for each match.
+      </div>
+    </div>
+
+    <button class="btn" id="vipRefreshBtn" onclick="buildVIP(true)">
+      REFRESH
+    </button>
+  </div>
+
+  <div class="notice">
+    VIP recommendations are model estimates, not guaranteed outcomes.
+    Matches without an available recommendation are clearly identified.
+  </div>
+
+  <div id="vipSummary" class="page-subtitle" style="margin-top:12px">
+    Preparing VIP analysis...
+  </div>
+
+  <div id="vipList">
+    <div class="loading">Waiting for available fixtures...</div>
+  </div>
+
+</section>
+
+
+<!-- MATCH DETAILS -->
+<section class="page" id="match">
+
+  <button class="btn secondary" onclick="showPage('predictions')">
+    ← BACK TO PREDICTIONS
+  </button>
+
+  <div id="matchDetails" style="margin-top:15px">
+    <div class="loading">Loading match analysis...</div>
+  </div>
+
+</section>
+
+
+<!-- HISTORY -->
+<section class="page" id="history">
+
+  <div class="page-title">Prediction History</div>
+  <div class="page-subtitle">
+    Your saved predictions and their recorded results.
   </div>
 
   <div class="panel">
-    <div class="empty">
-      <div class="icon">📋</div>
-      <strong>NO RECORDED PREDICTIONS</strong>
-      <br>
-      Saved predictions and verified results will appear here.
+    <div class="analysis-grid">
+      <div class="analysis-box">
+        <small>RECORDED PICKS</small>
+        <strong id="historyTotal">0</strong>
+      </div>
+      <div class="analysis-box">
+        <small>VERIFIED ACCURACY</small>
+        <strong id="historyAccuracy">0%</strong>
+      </div>
     </div>
   </div>
 
+  <div id="historyList">
+    <div class="empty">No predictions have been saved yet.</div>
+  </div>
+
+  <div class="notice">
+    Picks remain pending until a verified match result is available.
+    Automatic result verification is not enabled unless a result endpoint
+    is connected to the backend.
+  </div>
+
 </section>
 
-<!-- SETTINGS -->
-<section id="settings" class="page">
 
-  <div class="section-title">
-    <h3>SETTINGS</h3>
-    <span>GENERAL TIPS</span>
+<!-- SETTINGS -->
+<section class="page" id="settings">
+
+  <div class="page-title">Settings</div>
+  <div class="page-subtitle">
+    Application information and preferences.
   </div>
 
   <div class="panel">
-    <strong>GENERAL TIPS PRO V1.0</strong>
-    <p style="font-size:12px;color:var(--muted);line-height:1.7">
-      Football analysis and prediction platform.
-      <br><br>
-      Analysis only. No bet execution.
-      <br>
-      Probabilities are estimates, not guaranteed outcomes.
+    <h3 style="font-size:14px;margin-bottom:10px">
+      GENERAL TIPS PRO V1.0
+    </h3>
+    <p style="font-size:11px;color:var(--muted);line-height:1.8">
+      Football fixtures and analysis are retrieved from the connected
+      backend API. Predictions are statistical estimates and should
+      not be treated as guaranteed results.
     </p>
   </div>
 
-</section>
+  <div class="panel">
+    <h3 style="font-size:13px;margin-bottom:12px">Data connection</h3>
+    <div id="connectionStatus" style="font-size:11px;color:var(--muted)">
+      Checking connection...
+    </div>
+    <button class="btn" style="margin-top:13px" onclick="checkConnection()">
+      CHECK CONNECTION
+    </button>
+  </div>
 
-<div class="notice">
-  GENERAL TIPS PRO V1.0<br>
-  SMART ANALYSIS · SMARTER PREDICTIONS<br>
-  Analysis only · No guaranteed outcomes
-</div>
+  <div class="panel">
+    <h3 style="font-size:13px;margin-bottom:10px">Saved predictions</h3>
+    <p style="font-size:11px;color:var(--muted);line-height:1.6">
+      Your saved picks are stored locally on this device.
+    </p>
+    <button class="btn secondary" style="margin-top:12px"
+      onclick="clearHistory()">
+      CLEAR SAVED PICKS
+    </button>
+  </div>
+
+</section>
 
 </main>
 
+
+<!-- BOTTOM NAVIGATION -->
 <nav class="bottom-nav">
+  <div class="nav-inner">
 
-  <button class="nav-item active" data-page="home" onclick="showPage('home')">
-    <span>⌂</span>Home
-  </button>
+    <button class="nav-btn active" data-page="home"
+      onclick="showPage('home',this)">
+      <span class="nav-icon">⌂</span>
+      HOME
+    </button>
 
-  <button class="nav-item" data-page="fixtures" onclick="showPage('fixtures')">
-    <span>⚽</span>Fixtures
-  </button>
+    <button class="nav-btn" data-page="predictions"
+      onclick="showPage('predictions',this)">
+      <span class="nav-icon">⚽</span>
+      PREDICTIONS
+    </button>
 
-  <button class="nav-item" data-page="history" onclick="showPage('history')">
-    <span>▤</span>History
-  </button>
+    <button class="nav-btn" data-page="vip"
+      onclick="showPage('vip',this)">
+      <span class="nav-icon">♛</span>
+      VIP
+    </button>
 
-  <button class="nav-item" data-page="settings" onclick="showPage('settings')">
-    <span>⚙</span>Settings
-  </button>
+    <button class="nav-btn" data-page="history"
+      onclick="showPage('history',this)">
+      <span class="nav-icon">▤</span>
+      HISTORY
+    </button>
 
+    <button class="nav-btn" data-page="settings"
+      onclick="showPage('settings',this)">
+      <span class="nav-icon">⚙</span>
+      SETTINGS
+    </button>
+
+  </div>
 </nav>
 
+
 <script>
+/* =========================================
+   GENERAL TIPS PRO V1.0
+   ========================================= */
+
 let currentFixtures = [];
 let currentMatch = null;
 let currentAnalysis = null;
-let savedPicks = JSON.parse(localStorage.getItem('gtp_picks') || '[]');
 
-function showPage(page) {
-  document.querySelectorAll('.page').forEach(section => {
-    section.classList.remove('active');
-  });
+let savedPicks = [];
 
-  const target = document.getElementById(page);
-  if (target) target.classList.add('active');
-
-  document.querySelectorAll('.nav-item').forEach(button => {
-    button.classList.toggle('active', button.dataset.page === page);
-  });
-
-  window.scrollTo({top:0,behavior:'smooth'});
+try{
+  savedPicks = JSON.parse(localStorage.getItem('gtp_picks') || '[]');
+  if(!Array.isArray(savedPicks)) savedPicks = [];
+}catch(e){
+  savedPicks = [];
 }
 
-function escapeHTML(value) {
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  })[char]);
+let vipEntries = [];
+let vipCache = new Map();
+let vipBuilding = false;
+let vipBuilt = false;
+let currentPage = 'home';
+
+
+/* =========================================
+   BASIC HELPERS
+   ========================================= */
+
+function $(id){
+  return document.getElementById(id);
 }
 
-function formatDate(value) {
-  if (!value) return 'Date unavailable';
+function escapeHTML(value){
+  return String(value ?? '').replace(/[&<>"']/g,function(char){
+    return {
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    }[char];
+  });
+}
+
+function number(value){
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(1) : '—';
+}
+
+function safeNumber(value){
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getMatchId(match){
+  return match?.id ?? match?.matchId ?? match?.fixtureId ?? null;
+}
+
+function getTeamName(value){
+  if(typeof value === 'string') return value;
+  if(value && typeof value === 'object'){
+    return value.name || value.shortName || value.tla || 'Unknown';
+  }
+  return 'Unknown';
+}
+
+function getHome(match){
+  return getTeamName(
+    match?.homeTeam ??
+    match?.home ??
+    match?.teams?.home ??
+    match?.teamHome
+  );
+}
+
+function getAway(match){
+  return getTeamName(
+    match?.awayTeam ??
+    match?.away ??
+    match?.teams?.away ??
+    match?.teamAway
+  );
+}
+
+function getMatchDate(match){
+  return match?.utcDate ??
+         match?.date ??
+         match?.kickoff ??
+         match?.matchDate ??
+         null;
+}
+
+function formatDate(value){
+  if(!value) return 'Date unavailable';
+
   const date = new Date(value);
-  if (isNaN(date)) return escapeHTML(value);
 
-  return date.toLocaleString('en-GB', {
+  if(Number.isNaN(date.getTime())){
+    return String(value);
+  }
+
+  return date.toLocaleString('en-GB',{
     day:'2-digit',
     month:'short',
     year:'numeric',
@@ -521,387 +962,1157 @@ function formatDate(value) {
   });
 }
 
-async function loadFixtures() {
-  const button = document.getElementById('refreshBtn');
-  const list = document.getElementById('fixtureList');
+function getStatus(match){
+  const raw = String(
+    match?.status ??
+    match?.matchStatus ??
+    'UNKNOWN'
+  ).toUpperCase();
 
-  button.disabled = true;
-  button.textContent = 'LOADING...';
+  const liveStatuses = [
+    'LIVE','IN_PLAY','PAUSED','1H','2H','HT','ET','P'
+  ];
 
-  try {
-    const response = await fetch('/api/fixtures', {cache:'no-store'});
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+  const endedStatuses = [
+    'FINISHED','FT','AET','PEN','ENDED'
+  ];
 
-    const data = await response.json();
-    if (!Array.isArray(data.matches)) {
-      throw new Error('Unexpected fixture response');
-    }
+  const upcomingStatuses = [
+    'SCHEDULED','TIMED','NOT_STARTED','UPCOMING'
+  ];
 
-    renderFixtures(data.matches);
+  if(liveStatuses.includes(raw)) return 'LIVE';
+  if(endedStatuses.includes(raw)) return 'ENDED';
+  if(upcomingStatuses.includes(raw)) return 'UPCOMING';
 
-  } catch(error) {
-    list.innerHTML = `
-      <div class="empty">
-        <div class="icon">⚠️</div>
-        <strong>FIXTURE SERVICE ERROR</strong>
-        <br>${escapeHTML(error.message)}
-        <br><br>Please try refreshing.
-      </div>`;
-  } finally {
-    button.disabled = false;
-    button.textContent = '↻ REFRESH';
+  return raw.replace(/_/g,' ');
+}
+
+function getScore(match){
+  const score = match?.score;
+
+  if(!score) return '';
+
+  if(typeof score === 'string') return score;
+
+  const full = score.fullTime || score;
+
+  const home = full.home ?? full.homeTeam;
+  const away = full.away ?? full.awayTeam;
+
+  if(home === null || away === null ||
+     home === undefined || away === undefined){
+    return '';
+  }
+
+  return `${home} - ${away}`;
+}
+
+function probabilityValue(recommendation){
+  let value = safeNumber(
+    recommendation?.probability ??
+    recommendation?.confidence ??
+    recommendation?.percentage
+  );
+
+  if(value === null) return null;
+
+  if(value > 0 && value <= 1){
+    value = value * 100;
+  }
+
+  return Math.max(0,Math.min(100,value));
+}
+
+function riskFor(probability){
+  if(probability >= 80){
+    return {label:'LOW MODEL RISK',className:'risk-low'};
+  }
+
+  if(probability >= 65){
+    return {label:'MEDIUM MODEL RISK',className:'risk-medium'};
+  }
+
+  return {label:'HIGH MODEL RISK',className:'risk-high'};
+}
+
+function saveLocalPicks(){
+  localStorage.setItem('gtp_picks',JSON.stringify(savedPicks));
+}
+
+
+/* =========================================
+   PAGE NAVIGATION
+   ========================================= */
+
+function showPage(page,button){
+
+  currentPage = page;
+
+  document.querySelectorAll('.page').forEach(section=>{
+    section.classList.remove('active');
+  });
+
+  const target = $(page);
+  if(target) target.classList.add('active');
+
+  document.querySelectorAll('.nav-btn').forEach(nav=>{
+    nav.classList.remove('active');
+  });
+
+  if(button){
+    button.classList.add('active');
+  }else{
+    const nav = document.querySelector(
+      `.nav-btn[data-page="${page}"]`
+    );
+    if(nav) nav.classList.add('active');
+  }
+
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  if(page === 'history'){
+    renderHistory();
+  }
+
+  if(page === 'vip' && !vipBuilt && !vipBuilding){
+    buildVIP(false);
   }
 }
 
-function renderFixtures(matches) {
-  const list = document.getElementById('fixtureList');
-  currentFixtures = matches;
 
-  if (!matches.length) {
-    list.innerHTML = '<div class="empty">No fixtures available.</div>';
+/* =========================================
+   DASHBOARD
+   ========================================= */
+
+function updateDashboard(){
+
+  $('predictionCount').textContent = currentFixtures.length;
+
+  $('vipCount').textContent = vipEntries.filter(
+    entry=>entry.recommendation
+  ).length;
+
+  $('recordedCount').textContent = savedPicks.length;
+
+  const graded = savedPicks.filter(pick=>
+    pick.result === 'WON' || pick.result === 'LOST'
+  );
+
+  const wins = graded.filter(pick=>pick.result === 'WON').length;
+
+  const accuracy = graded.length
+    ? (wins / graded.length) * 100
+    : 0;
+
+  $('accuracy').textContent =
+    graded.length ? accuracy.toFixed(1)+'%' : '0%';
+
+  $('historyTotal').textContent = savedPicks.length;
+
+  $('historyAccuracy').textContent =
+    graded.length ? accuracy.toFixed(1)+'%' : '0%';
+}
+
+
+/* =========================================
+   FIXTURE API
+   ========================================= */
+
+async function loadFixtures(){
+
+  const button = $('refreshBtn');
+
+  if(button){
+    button.disabled = true;
+    button.textContent = 'LOADING...';
+  }
+
+  $('fixtureMessage').innerHTML = '';
+  $('fixtureList').innerHTML =
+    '<div class="loading">Connecting to football data...</div>';
+
+  try{
+
+    const response = await fetch('/api/fixtures',{
+      method:'GET',
+      headers:{'Accept':'application/json'}
+    });
+
+    if(!response.ok){
+      throw new Error('Fixture API returned HTTP '+response.status);
+    }
+
+    const data = await response.json();
+
+    if(!Array.isArray(data.matches)){
+      throw new Error(
+        data.message || 'The API response does not contain a matches list.'
+      );
+    }
+
+    currentFixtures = data.matches;
+
+    renderFixtures(currentFixtures);
+
+    // A new fixture list means VIP recommendations must be rebuilt.
+    vipCache.clear();
+    vipEntries = [];
+    vipBuilt = false;
+
+    $('vipList').innerHTML =
+      '<div class="loading">Preparing VIP recommendations...</div>';
+
+    $('vipSummary').textContent =
+      'Analysing available matches...';
+
+    updateDashboard();
+
+    // Build VIP recommendations in the background.
+    buildVIP(false);
+
+  }catch(error){
+
+    $('fixtureList').innerHTML =
+      `<div class="panel error">
+        Unable to load fixtures.<br>
+        ${escapeHTML(error.message)}
+      </div>`;
+
+    $('fixtureMessage').innerHTML =
+      '<div class="notice">Check that your backend service is running and that /api/fixtures is available.</div>';
+
+    $('vipList').innerHTML =
+      '<div class="empty">VIP recommendations are waiting for fixture data.</div>';
+
+    $('vipSummary').textContent = 'No fixture data available.';
+
+  }finally{
+
+    if(button){
+      button.disabled = false;
+      button.textContent = 'REFRESH';
+    }
+
+  }
+}
+
+
+/* =========================================
+   FIXTURE DISPLAY
+   ========================================= */
+
+function renderFixtures(matches){
+
+  if(!matches.length){
+    $('fixtureList').innerHTML =
+      '<div class="empty">No fixtures are currently available from the data provider.</div>';
+
+    updateDashboard();
     return;
   }
 
-  list.innerHTML = matches.map((match,index) => {
-    const home = match.homeTeam?.name || 'Home';
-    const away = match.awayTeam?.name || 'Away';
-    const status = match.status || 'SCHEDULED';
-    const score = match.score?.fullTime;
+  $('fixtureList').innerHTML = matches.map((match,index)=>{
 
-    let scoreText = '';
-    if (score && score.home !== null && score.away !== null) {
-      scoreText = `<small>Score: ${score.home} - ${score.away}</small>`;
-    }
+    const home = escapeHTML(getHome(match));
+    const away = escapeHTML(getAway(match));
+    const status = getStatus(match);
+    const score = getScore(match);
+    const date = formatDate(getMatchDate(match));
+
+    const statusClass =
+      status === 'LIVE' ? 'live' :
+      status === 'ENDED' ? 'ended' : '';
 
     return `
-      <div class="match" onclick="openMatch(${index})">
-        <span class="status">${escapeHTML(status)}</span>
-        <strong>
-          ${escapeHTML(home)}
-          <br><br>VS<br><br>
-          ${escapeHTML(away)}
-        </strong>
-        ${scoreText}
-        <small>${formatDate(match.utcDate)}</small>
-        <small>Tap to view match →</small>
-      </div>`;
+      <div class="match-card">
+
+        <div class="match-top">
+          <span class="match-date">${escapeHTML(date)}</span>
+          <span class="status ${statusClass}">
+            ${escapeHTML(status)}
+          </span>
+        </div>
+
+        <div class="teams">
+          <div class="team">${home}</div>
+
+          ${
+            score
+            ? `<div class="score">${escapeHTML(score)}</div>`
+            : `<div class="vs">VS</div>`
+          }
+
+          <div class="team">${away}</div>
+        </div>
+
+        <div class="match-bottom">
+          <span class="match-meta">
+            ${escapeHTML(match.competition?.name || match.competition || 'Football match')}
+          </span>
+
+          <button class="btn" onclick="openMatch(${index})">
+            ANALYSE →
+          </button>
+        </div>
+
+      </div>
+    `;
+
   }).join('');
-
-  document.getElementById('upcomingCount').textContent =
-    matches.filter(m => m.status === 'SCHEDULED' || m.status === 'TIMED').length;
-
-  document.getElementById('liveCount').textContent =
-    matches.filter(m => ['LIVE','IN_PLAY','PAUSED'].includes(m.status)).length;
 
   updateDashboard();
 }
 
-async function openMatch(index) {
+
+/* =========================================
+   MATCH ANALYSIS API
+   ========================================= */
+
+async function fetchAnalysis(match){
+
+  const id = getMatchId(match);
+
+  if(id === null || id === undefined){
+    throw new Error('This fixture does not have a valid match ID.');
+  }
+
+  const response = await fetch(
+    '/api/match/'+encodeURIComponent(id)+'/analysis',
+    {
+      method:'GET',
+      headers:{'Accept':'application/json'}
+    }
+  );
+
+  if(!response.ok){
+    throw new Error('Analysis API returned HTTP '+response.status);
+  }
+
+  const data = await response.json();
+
+  return data;
+}
+
+
+async function openMatch(index){
+
   const match = currentFixtures[index];
-  if (!match || !match.id) return;
+
+  if(!match) return;
 
   currentMatch = match;
   currentAnalysis = null;
 
   showPage('match');
 
-  const box = document.getElementById('matchDetails');
+  $('matchDetails').innerHTML =
+    '<div class="loading">Analysing match. Please wait...</div>';
 
-  box.innerHTML = `
-    <div class="empty">
-      <div class="icon">📊</div>
-      <strong>ANALYSING MATCH...</strong>
-      <br>Retrieving real match statistics.
-    </div>`;
+  try{
 
-  try {
-    const response = await fetch(
-      '/api/match/' + encodeURIComponent(match.id) + '/analysis',
-      {cache:'no-store'}
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.details || data.error || 'Analysis unavailable');
-    }
+    const data = await fetchAnalysis(match);
 
     currentAnalysis = data;
+
     renderMatchAnalysis(data);
 
-  } catch(error) {
-    box.innerHTML = `
-      <div class="empty">
-        <div class="icon">⚠️</div>
-        <strong>ANALYSIS UNAVAILABLE</strong>
-        <br>${escapeHTML(error.message)}
+  }catch(error){
+
+    $('matchDetails').innerHTML =
+      `<div class="panel error">
+        Unable to load this match analysis.<br><br>
+        ${escapeHTML(error.message)}
         <br><br>
         Please try again later.
       </div>`;
+
   }
 }
 
-function renderMatchAnalysis(data) {
-  const box = document.getElementById('matchDetails');
-  const match = data.match || {};
-  const model = data.model || {};
-  const form = data.teamForm || {};
-  const probabilities = data.probabilities || {};
-  const recommendations = data.recommendations || [];
 
-  const home = match.homeTeam || 'Home';
-  const away = match.awayTeam || 'Away';
+async function openMatchById(id){
 
-  box.innerHTML = `
-    <div class="section-title">
-      <h3>${escapeHTML(home)} VS ${escapeHTML(away)}</h3>
-      <span>REAL DATA</span>
-    </div>
-
-    <p style="color:var(--muted);font-size:11px">
-      ${escapeHTML(match.competition || '')}
-      <br>${formatDate(match.date)}
-      <br>Status: ${escapeHTML(match.status || '')}
-    </p>
-
-    <div class="panel" style="background:var(--panel2)">
-      <small style="color:var(--cyan)">GENERAL TIPS STATISTICAL MODEL</small>
-      <h3 style="margin-bottom:8px">EXPECTED GOALS</h3>
-      <div style="font-size:22px;font-weight:bold">
-        ${number(model.expectedHomeGoals)} -
-        ${number(model.expectedAwayGoals)}
-      </div>
-      <p style="color:var(--muted);font-size:10px">
-        Based on ${number(model.matchesPerTeam)} recent completed matches per team.
-      </p>
-    </div>
-
-    <div class="section-title">
-      <h3>TOP QUALIFIED RECOMMENDATIONS</h3>
-      <span>${recommendations.length} FOUND</span>
-    </div>
-
-    ${recommendations.length ? recommendations.map((pick,index) => `
-      <div class="panel">
-        <small style="color:var(--cyan)">RECOMMENDATION ${index + 1}</small>
-        <h3 style="margin:10px 0">${escapeHTML(pick.market)}</h3>
-        <div style="font-size:25px;font-weight:bold;color:var(--green)">
-          ${number(pick.probability)}%
-        </div>
-        <small style="color:var(--muted)">
-          Confidence: ${escapeHTML(pick.confidence || 'UNRATED')}
-        </small>
-        <div style="margin-top:13px">
-          <button class="btn" onclick="savePick(${index})">
-            SAVE PICK
-          </button>
-        </div>
-      </div>
-    `).join('') : `
-      <div class="empty">
-        No recommendations available for this match.
-      </div>
-    `}
-
-    <button class="btn secondary" style="width:100%;margin:8px 0 18px"
-      onclick="showFullAnalysis()">
-      VIEW FULL ANALYSIS
-    </button>
-
-    <div id="fullAnalysis" style="display:none">
-      <div class="section-title">
-        <h3>TEAM FORM</h3>
-        <span>LAST 10</span>
-      </div>
-
-      ${renderTeamForm(home,form.home)}
-      ${renderTeamForm(away,form.away)}
-
-      <div class="section-title">
-        <h3>MARKET PROBABILITIES</h3>
-        <span>MODEL ESTIMATES</span>
-      </div>
-
-      ${probabilityRow('Home Win',probabilities.homeWin)}
-      ${probabilityRow('Draw',probabilities.draw)}
-      ${probabilityRow('Away Win',probabilities.awayWin)}
-      ${probabilityRow('Over 1.5 Goals',probabilities.over15)}
-      ${probabilityRow('Over 2.5 Goals',probabilities.over25)}
-      ${probabilityRow('Over 3.5 Goals',probabilities.over35)}
-      ${probabilityRow('Under 1.5 Goals',probabilities.under15)}
-      ${probabilityRow('Under 2.5 Goals',probabilities.under25)}
-      ${probabilityRow('Under 3.5 Goals',probabilities.under35)}
-      ${probabilityRow('BTTS Yes',probabilities.bttsYes)}
-      ${probabilityRow('BTTS No',probabilities.bttsNo)}
-
-      <div class="section-title">
-        <h3>MODEL LIMITATIONS</h3>
-      </div>
-
-      <div class="panel">
-        ${(data.limitations || []).map(item => `
-          <p style="font-size:11px;color:var(--muted);line-height:1.6">
-            • ${escapeHTML(item)}
-          </p>
-        `).join('')}
-      </div>
-    </div>
-
-    <p style="font-size:10px;color:var(--muted);line-height:1.6">
-      Statistical estimates only. No guaranteed outcomes.
-      This app does not execute bets.
-    </p>
-  `;
-}
-
-function number(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(1) : '—';
-}
-
-function renderTeamForm(name,team) {
-  if (!team) return '';
-
-  return `
-    <div class="panel">
-      <strong>${escapeHTML(name)}</strong>
-      <p style="font-size:11px;color:var(--muted)">
-        Played: ${number(team.played)}
-        <br>Wins: ${number(team.wins)}
-        · Draws: ${number(team.draws)}
-        · Losses: ${number(team.losses)}
-        <br>Goals scored: ${number(team.goalsFor)}
-        <br>Goals conceded: ${number(team.goalsAgainst)}
-        <br>Average goals scored: ${number(team.averageGoalsFor)}
-        <br>Average goals conceded: ${number(team.averageGoalsAgainst)}
-      </p>
-      <div style="font-size:17px;letter-spacing:4px">
-        ${(team.form || []).map(result => {
-          const color = result === 'W' ? 'var(--green)' :
-                        result === 'L' ? 'var(--red)' : 'var(--cyan)';
-          return `<span style="color:${color}">${escapeHTML(result)}</span>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-
-function probabilityRow(label,value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return '';
-
-  return `
-    <div class="panel" style="padding:12px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;font-size:11px">
-        <strong>${escapeHTML(label)}</strong>
-        <strong style="color:var(--cyan)">${n.toFixed(1)}%</strong>
-      </div>
-      <div style="height:6px;background:#203650;border-radius:10px;margin-top:9px">
-        <div style="height:6px;width:${Math.max(0,Math.min(100,n))}%;
-          background:linear-gradient(90deg,#1677ee,#38d8ff);
-          border-radius:10px"></div>
-      </div>
-    </div>`;
-}
-
-function showFullAnalysis() {
-  const section = document.getElementById('fullAnalysis');
-  if (!section) return;
-
-  section.style.display =
-    section.style.display === 'none' ? 'block' : 'none';
-}
-
-function savePick(index) {
-  if (!currentAnalysis || !currentMatch) return;
-
-  const pick = currentAnalysis.recommendations?.[index];
-  if (!pick) return;
-
-  const exists = savedPicks.some(p =>
-    String(p.matchId) === String(currentMatch.id) &&
-    p.market === pick.market
+  const index = currentFixtures.findIndex(
+    match=>String(getMatchId(match)) === String(id)
   );
 
-  if (exists) {
+  if(index >= 0){
+    await openMatch(index);
+  }
+}
+
+
+/* =========================================
+   MATCH ANALYSIS DISPLAY
+   ========================================= */
+
+function renderMatchAnalysis(data){
+
+  const match = data.match || currentMatch || {};
+
+  const home = getHome(match) !== 'Unknown'
+    ? getHome(match)
+    : getHome(currentMatch);
+
+  const away = getAway(match) !== 'Unknown'
+    ? getAway(match)
+    : getAway(currentMatch);
+
+  const probabilities = data.probabilities || {};
+  const recommendations = Array.isArray(data.recommendations)
+    ? data.recommendations
+    : [];
+
+  let html = `
+
+    <div class="panel">
+
+      <div class="analysis-title">
+        ${escapeHTML(home)} vs ${escapeHTML(away)}
+      </div>
+
+      <p style="font-size:10px;color:var(--muted)">
+        ${escapeHTML(formatDate(getMatchDate(match) || getMatchDate(currentMatch)))}
+      </p>
+
+      <div style="margin-top:10px">
+        <span class="status">
+          ${escapeHTML(getStatus(match))}
+        </span>
+      </div>
+
+    </div>
+
+  `;
+
+
+  if(data.model){
+
+    html += `
+      <div class="panel">
+        <h3 style="font-size:13px;margin-bottom:10px">
+          Model Analysis
+        </h3>
+
+        <p style="font-size:11px;color:var(--muted);line-height:1.7">
+          ${escapeHTML(
+            typeof data.model === 'string'
+              ? data.model
+              : data.model.name || data.model.description || 'Analysis model'
+          )}
+        </p>
+      </div>
+    `;
+
+  }
+
+
+  if(probabilities && Object.keys(probabilities).length){
+
+    html += `
+      <div class="panel">
+        <h3 style="font-size:14px;margin-bottom:12px">
+          Match Probabilities
+        </h3>
+
+        ${Object.entries(probabilities).map(([key,value])=>{
+          const val = typeof value === 'object'
+            ? safeNumber(value.probability ?? value.percentage)
+            : safeNumber(value);
+
+          if(val === null) return '';
+
+          const percentage = Math.max(
+            0,Math.min(100,val <= 1 && val > 0 ? val*100 : val)
+          );
+
+          return `
+            <div style="margin-bottom:13px">
+              <div style="display:flex;justify-content:space-between;font-size:11px">
+                <span>${escapeHTML(key.replace(/_/g,' '))}</span>
+                <strong>${percentage.toFixed(1)}%</strong>
+              </div>
+
+              <div class="progress">
+                <span style="width:${percentage}%"></span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+
+      </div>
+    `;
+
+  }
+
+
+  html += `
+    <div class="panel">
+      <h3 style="font-size:14px;margin-bottom:13px">
+        Available Recommendations
+      </h3>
+  `;
+
+
+  if(!recommendations.length){
+
+    html += `
+      <div class="empty">
+        No recommendations are currently available for this match.
+      </div>
+    `;
+
+  }else{
+
+    html += recommendations.map((recommendation,index)=>{
+
+      const probability = probabilityValue(recommendation);
+
+      const confidenceText = probability === null
+        ? 'Not provided'
+        : probability.toFixed(1)+'%';
+
+      return `
+        <div class="recommendation">
+
+          <h3>${escapeHTML(recommendation.market || recommendation.name || 'Recommendation')}</h3>
+
+          <p>Model confidence: <strong>${escapeHTML(confidenceText)}</strong></p>
+
+          ${
+            probability !== null
+            ? `<div class="progress">
+                <span style="width:${probability}%"></span>
+              </div>`
+            : ''
+          }
+
+          <button class="btn green"
+            onclick="savePick(${index})">
+            SAVE PICK
+          </button>
+
+        </div>
+      `;
+
+    }).join('');
+
+  }
+
+  html += '</div>';
+
+
+  if(data.teamForm){
+
+    html += `
+      <div class="panel">
+        <h3 style="font-size:14px;margin-bottom:10px">
+          Team Form
+        </h3>
+        ${renderTeamForm(data.teamForm)}
+      </div>
+    `;
+
+  }
+
+
+  if(data.limitations){
+
+    html += `
+      <div class="notice">
+        <strong>Analysis limitations:</strong><br>
+        ${escapeHTML(
+          Array.isArray(data.limitations)
+            ? data.limitations.join(' · ')
+            : data.limitations
+        )}
+      </div>
+    `;
+
+  }
+
+
+  html += `
+    <div class="notice">
+      These percentages are statistical model estimates. They do not
+      guarantee that a prediction will win.
+    </div>
+  `;
+
+  $('matchDetails').innerHTML = html;
+}
+
+
+function renderTeamForm(form){
+
+  if(!form) return '';
+
+  if(typeof form === 'string'){
+    return `<p style="font-size:11px;color:var(--muted)">
+      ${escapeHTML(form)}
+    </p>`;
+  }
+
+  if(Array.isArray(form)){
+
+    return form.map(item=>`
+      <p style="font-size:11px;color:var(--muted);margin:7px 0">
+        ${escapeHTML(
+          typeof item === 'object'
+            ? JSON.stringify(item)
+            : item
+        )}
+      </p>
+    `).join('');
+
+  }
+
+  return Object.entries(form).map(([key,value])=>`
+    <p style="font-size:11px;color:var(--muted);margin:7px 0">
+      <strong>${escapeHTML(key)}:</strong>
+      ${escapeHTML(
+        typeof value === 'object'
+          ? JSON.stringify(value)
+          : value
+      )}
+    </p>
+  `).join('');
+}
+
+
+/* =========================================
+   SAVE PREDICTION
+   ========================================= */
+
+function savePick(index){
+
+  if(!currentAnalysis || !currentMatch){
+    alert('Match analysis is not available.');
+    return;
+  }
+
+  const recommendations = Array.isArray(currentAnalysis.recommendations)
+    ? currentAnalysis.recommendations
+    : [];
+
+  const recommendation = recommendations[index];
+
+  if(!recommendation){
+    alert('This recommendation is not available.');
+    return;
+  }
+
+  const matchId = getMatchId(currentMatch);
+  const market = recommendation.market || recommendation.name || 'Prediction';
+
+  const duplicate = savedPicks.some(pick=>
+    String(pick.matchId) === String(matchId) &&
+    pick.market === market
+  );
+
+  if(duplicate){
     alert('This pick has already been saved.');
     return;
   }
 
-  savedPicks.push({
-    id: Date.now(),
-    matchId: currentMatch.id,
-    homeTeam: currentAnalysis.match.homeTeam,
-    awayTeam: currentAnalysis.match.awayTeam,
-    date: currentAnalysis.match.date,
-    market: pick.market,
-    probability: pick.probability,
-    confidence: pick.confidence,
-    result: 'PENDING',
-    savedAt: new Date().toISOString()
-  });
+  const probability = probabilityValue(recommendation);
 
-  localStorage.setItem('gtp_picks',JSON.stringify(savedPicks));
+  const pick = {
+    matchId:matchId,
+    homeTeam:getHome(currentMatch),
+    awayTeam:getAway(currentMatch),
+    date:getMatchDate(currentMatch),
+    market:market,
+    probability:probability,
+    confidence:probability,
+    result:'PENDING',
+    savedAt:new Date().toISOString()
+  };
 
+  savedPicks.unshift(pick);
+
+  saveLocalPicks();
   updateDashboard();
-  alert('Prediction saved successfully!');
+
+  alert('Prediction saved successfully.');
+
 }
 
-function updateDashboard() {
-  document.getElementById('recordedCount').textContent = savedPicks.length;
 
-  const graded = savedPicks.filter(p =>
-    p.result === 'WON' || p.result === 'LOST'
-  );
+/* =========================================
+   VIP PREDICTION ENGINE
+   ========================================= */
 
-  const wins = graded.filter(p => p.result === 'WON').length;
+function getBestRecommendation(data){
 
-  document.getElementById('accuracy').textContent =
-    graded.length ? (wins / graded.length * 100).toFixed(1) + '%' : '—';
+  const recommendations = Array.isArray(data?.recommendations)
+    ? data.recommendations
+    : [];
+
+  const usable = recommendations
+    .map(recommendation=>({
+      recommendation,
+      probability:probabilityValue(recommendation)
+    }))
+    .filter(item=>item.probability !== null)
+    .sort((a,b)=>b.probability-a.probability);
+
+  return usable.length ? usable[0] : null;
 }
 
-function renderHistory() {
-  const page = document.getElementById('history');
-  const panel = page.querySelector('.panel');
 
-  if (!savedPicks.length) {
-    panel.innerHTML = `
-      <div class="empty">
-        <div class="icon">📋</div>
-        <strong>NO RECORDED PREDICTIONS</strong>
-        <br>Save a recommendation from a match to see it here.
-      </div>`;
+async function analyseVIPMatch(match){
+
+  const id = getMatchId(match);
+
+  if(id === null || id === undefined){
+    return {
+      match,
+      recommendation:null,
+      error:'Match ID unavailable'
+    };
+  }
+
+  const key = String(id);
+
+  if(vipCache.has(key)){
+    return vipCache.get(key);
+  }
+
+  try{
+
+    const data = await fetchAnalysis(match);
+
+    const best = getBestRecommendation(data);
+
+    const entry = {
+      match,
+      matchId:id,
+      analysis:data,
+      recommendation:best ? best.recommendation : null,
+      probability:best ? best.probability : null,
+      error:null
+    };
+
+    vipCache.set(key,entry);
+
+    return entry;
+
+  }catch(error){
+
+    const entry = {
+      match,
+      matchId:id,
+      recommendation:null,
+      probability:null,
+      error:error.message
+    };
+
+    vipCache.set(key,entry);
+
+    return entry;
+
+  }
+}
+
+
+/*
+  Process matches with a maximum of three simultaneous
+  analysis requests to avoid flooding the backend.
+*/
+
+async function processVIPQueue(matches){
+
+  const results = new Array(matches.length);
+  let nextIndex = 0;
+
+  async function worker(){
+
+    while(true){
+
+      const index = nextIndex++;
+
+      if(index >= matches.length) return;
+
+      results[index] = await analyseVIPMatch(matches[index]);
+
+      renderVIPProgress(results.filter(Boolean));
+
+    }
+
+  }
+
+  const workers = [];
+
+  const workerCount = Math.min(3,matches.length);
+
+  for(let i=0;i<workerCount;i++){
+    workers.push(worker());
+  }
+
+  await Promise.all(workers);
+
+  return results;
+}
+
+
+async function buildVIP(forceRefresh){
+
+  if(vipBuilding) return;
+
+  if(!currentFixtures.length){
+
+    $('vipList').innerHTML =
+      '<div class="empty">No fixtures are available for VIP analysis.</div>';
+
+    $('vipSummary').textContent = 'No available fixtures.';
+
     return;
   }
 
-  panel.innerHTML = `
-    <div style="font-size:11px;color:var(--muted);margin-bottom:15px">
-      Saved predictions: ${savedPicks.length}
-    </div>
-    ${savedPicks.slice().reverse().map(pick => `
-      <div class="panel" style="background:var(--panel2)">
-        <strong>${escapeHTML(pick.homeTeam)} VS ${escapeHTML(pick.awayTeam)}</strong>
-        <p style="font-size:12px">${escapeHTML(pick.market)}</p>
-        <p style="font-size:11px;color:var(--muted)">
-          Probability: ${number(pick.probability)}%
-          <br>Match date: ${formatDate(pick.date)}
-          <br>Result: ${escapeHTML(pick.result)}
-        </p>
-      </div>
-    `).join('')}
-    <p style="font-size:10px;color:var(--muted)">
-      Picks remain pending until match-result verification is connected.
-    </p>`;
+  if(forceRefresh){
+    vipCache.clear();
+    vipBuilt = false;
+  }
+
+  if(vipBuilt && !forceRefresh){
+    renderVIP();
+    return;
+  }
+
+  vipBuilding = true;
+
+  const button = $('vipRefreshBtn');
+
+  if(button){
+    button.disabled = true;
+    button.textContent = 'ANALYSING...';
+  }
+
+  $('vipSummary').textContent =
+    `Analysing ${currentFixtures.length} available matches...`;
+
+  $('vipList').innerHTML =
+    '<div class="loading">Building VIP recommendations. Please wait...</div>';
+
+  try{
+
+    const results = await processVIPQueue(currentFixtures);
+
+    vipEntries = results
+      .filter(Boolean)
+      .sort((a,b)=>{
+
+        if(a.probability === null && b.probability === null) return 0;
+        if(a.probability === null) return 1;
+        if(b.probability === null) return -1;
+
+        return b.probability-a.probability;
+
+      });
+
+    vipBuilt = true;
+
+    renderVIP();
+
+    updateDashboard();
+
+  }catch(error){
+
+    $('vipList').innerHTML =
+      `<div class="panel error">
+        VIP analysis could not be completed.
+        ${escapeHTML(error.message)}
+      </div>`;
+
+  }finally{
+
+    vipBuilding = false;
+
+    if(button){
+      button.disabled = false;
+      button.textContent = 'REFRESH';
+    }
+
+  }
 }
 
-const originalShowPage = showPage;
 
-showPage = function(page) {
-  originalShowPage(page);
-  if (page === 'history') renderHistory();
-};
+function renderVIPProgress(results){
+
+  const available = results.filter(
+    entry=>entry.recommendation
+  ).length;
+
+  $('vipSummary').textContent =
+    `Analysed ${results.length} of ${currentFixtures.length} matches · ${available} recommendations available`;
+
+}
+
+
+function renderVIP(){
+
+  const available = vipEntries.filter(
+    entry=>entry.recommendation
+  );
+
+  const unavailable = vipEntries.length-available.length;
+
+  $('vipSummary').textContent =
+    `${available.length} recommendations available from ${currentFixtures.length} fixtures`+
+    (unavailable ? ` · ${unavailable} unavailable` : '');
+
+  updateDashboard();
+
+  if(!vipEntries.length){
+
+    $('vipList').innerHTML =
+      '<div class="empty">No VIP analysis is available.</div>';
+
+    return;
+  }
+
+
+  $('vipList').innerHTML = vipEntries.map((entry,index)=>{
+
+    const match = entry.match;
+
+    const home = escapeHTML(getHome(match));
+    const away = escapeHTML(getAway(match));
+    const date = escapeHTML(formatDate(getMatchDate(match)));
+    const status = escapeHTML(getStatus(match));
+
+    if(!entry.recommendation){
+
+      return `
+        <div class="vip-card">
+
+          <div class="vip-rank">
+            MATCH ${index+1}
+          </div>
+
+          <div class="teams" style="margin-top:12px">
+            <div class="team">${home}</div>
+            <div class="vs">VS</div>
+            <div class="team">${away}</div>
+          </div>
+
+          <div class="vip-details">
+            <span class="small-badge">${status}</span>
+            <span class="small-badge">${date}</span>
+          </div>
+
+          <div class="unavailable">
+            Recommendation unavailable for this match.
+          </div>
+
+          <button class="btn secondary"
+            style="margin-top:12px"
+            onclick="openMatchById('${escapeHTML(entry.matchId)}')">
+            VIEW ANALYSIS
+          </button>
+
+        </div>
+      `;
+    }
+
+
+    const recommendation = entry.recommendation;
+    const probability = entry.probability;
+    const risk = riskFor(probability);
+
+    const market = escapeHTML(
+      recommendation.market ||
+      recommendation.name ||
+      'Recommendation'
+    );
+
+    const score = getScore(match);
+
+    return `
+      <div class="vip-card">
+
+        <div class="vip-rank">
+          VIP RANK #${index+1}
+        </div>
+
+        <div class="teams" style="margin-top:12px">
+          <div class="team">${home}</div>
+
+          ${
+            score
+            ? `<div class="score">${escapeHTML(score)}</div>`
+            : `<div class="vs">VS</div>`
+          }
+
+          <div class="team">${away}</div>
+        </div>
+
+        <div class="vip-details">
+          <span class="small-badge">${status}</span>
+          <span class="small-badge">${date}</span>
+        </div>
+
+        <div class="vip-pick">
+
+          <div class="vip-rank">HIGHEST-CONFIDENCE AVAILABLE PICK</div>
+
+          <div class="vip-market">${market}</div>
+
+          <div class="vip-confidence">
+            ${probability.toFixed(1)}%
+          </div>
+
+          <div class="vip-details">
+            <span class="small-badge ${risk.className}">
+              ${risk.label}
+            </span>
+            <span class="small-badge">
+              MODEL ESTIMATE
+            </span>
+          </div>
+
+        </div>
+
+        <button class="btn"
+          style="margin-top:12px"
+          onclick="openMatchById('${escapeHTML(entry.matchId)}')">
+          VIEW FULL ANALYSIS →
+        </button>
+
+      </div>
+    `;
+
+  }).join('');
+
+}
+
+
+/* =========================================
+   HISTORY
+   ========================================= */
+
+function renderHistory(){
+
+  updateDashboard();
+
+  if(!savedPicks.length){
+
+    $('historyList').innerHTML =
+      '<div class="empty">No predictions have been saved yet.<br>Save a recommendation from a match analysis to see it here.</div>';
+
+    return;
+  }
+
+  $('historyList').innerHTML = savedPicks.map((pick,index)=>{
+
+    const result = pick.result || 'PENDING';
+
+    const resultClass =
+      result === 'WON' ? 'won' :
+      result === 'LOST' ? 'lost' : 'pending';
+
+    const confidence = pick.probability === null ||
+      pick.probability === undefined
+      ? 'Not provided'
+      : Number(pick.probability).toFixed(1)+'%';
+
+    return `
+      <div class="history-item">
+
+        <h3>
+          ${escapeHTML(pick.homeTeam)}
+          vs
+          ${escapeHTML(pick.awayTeam)}
+        </h3>
+
+        <p>
+          <strong>Market:</strong> ${escapeHTML(pick.market)}<br>
+          <strong>Model confidence:</strong> ${escapeHTML(confidence)}<br>
+          <strong>Match date:</strong> ${escapeHTML(formatDate(pick.date))}<br>
+          <strong>Saved:</strong> ${escapeHTML(formatDate(pick.savedAt))}<br>
+          <strong>Result:</strong>
+          <span class="${resultClass}">${escapeHTML(result)}</span>
+        </p>
+
+      </div>
+    `;
+
+  }).join('');
+
+}
+
+
+function clearHistory(){
+
+  const confirmed = confirm(
+    'Are you sure you want to clear all saved predictions on this device?'
+  );
+
+  if(!confirmed) return;
+
+  savedPicks = [];
+
+  saveLocalPicks();
+
+  renderHistory();
+  updateDashboard();
+
+}
+
+
+/* =========================================
+   CONNECTION CHECK
+   ========================================= */
+
+async function checkConnection(){
+
+  $('connectionStatus').textContent = 'Checking backend connection...';
+
+  try{
+
+    const response = await fetch('/api/fixtures',{
+      method:'GET',
+      headers:{'Accept':'application/json'}
+    });
+
+    if(!response.ok){
+      throw new Error('HTTP '+response.status);
+    }
+
+    const data = await response.json();
+
+    if(!Array.isArray(data.matches)){
+      throw new Error('Unexpected API response');
+    }
+
+    $('connectionStatus').innerHTML =
+      `<span style="color:var(--green);font-weight:800">
+        CONNECTED
+      </span><br>
+      Backend is responding. ${data.matches.length} fixtures received.`;
+
+  }catch(error){
+
+    $('connectionStatus').innerHTML =
+      `<span style="color:var(--red);font-weight:800">
+        CONNECTION ERROR
+      </span><br>
+      ${escapeHTML(error.message)}`;
+
+  }
+
+}
+
+
+/* =========================================
+   START APPLICATION
+   ========================================= */
 
 updateDashboard();
 loadFixtures();
+
 </script>
 
 </body>
