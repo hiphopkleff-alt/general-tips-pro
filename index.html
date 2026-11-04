@@ -1882,7 +1882,7 @@ function renderMatchAnalysis(data){
   const topRecommendations =
     availableRecommendations.slice(0,3);
 
-/* RECOMMENDATION CARDS — MATCH PREDICTIONS PAGE DESIGN */
+/* ONE COMPACT RECOMMENDATION CARD */
 
 let recommendationsHTML = '';
 
@@ -1890,86 +1890,107 @@ if (availableRecommendations.length > 0) {
 
   const homeLogo = getHomeLogo(match);
   const awayLogo = getAwayLogo(match);
-  const matchStatus = getStatus(match);
 
-  const statusClass =
-    matchStatus === 'LIVE' ? 'live' :
-    matchStatus === 'ENDED' ? 'ended' : '';
+  const homeImage = homeLogo
+    ? `<img class="team-logo" src="${homeLogo}" onerror="this.style.display='none'">`
+    : '';
 
-  recommendationsHTML = availableRecommendations
+  const awayImage = awayLogo
+    ? `<img class="team-logo" src="${awayLogo}" onerror="this.style.display='none'">`
+    : '';
+
+  const picksHTML = availableRecommendations
     .slice(0, 3)
-    .map((item, index) => {
+    .map((item, index) => `
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:12px;
+        padding:12px 10px;
+        margin-top:9px;
+        border:1px solid rgba(53,255,173,.45);
+        border-radius:12px;
+        background:rgba(53,255,173,.045);
+      ">
+        <span style="
+          width:35px;
+          height:35px;
+          flex:0 0 35px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          border-radius:50%;
+          background:linear-gradient(135deg,#087b58,#35ffad);
+          color:#fff;
+          font-size:16px;
+          font-weight:900;
+        ">${index + 1}</span>
 
-      const probability = Number(item.probability);
+        <div style="flex:1;min-width:0">
+          <div style="
+            color:#65ffc0;
+            font-size:10px;
+            font-weight:900;
+            letter-spacing:1px;
+          ">PICK ${index + 1}</div>
 
-      const confidence =
-        probability >= 75 ? 'HIGH' :
-        probability >= 60 ? 'MEDIUM' : 'LOW';
-
-      const homeImage = homeLogo
-        ? `<img class="team-logo" src="${homeLogo}" onerror="this.style.display='none'">`
-        : '';
-
-      const awayImage = awayLogo
-        ? `<img class="team-logo" src="${awayLogo}" onerror="this.style.display='none'">`
-        : '';
-
-      return `
-        <div class="match-card">
-
-          <div class="match-top">
-            <span class="match-date">TOP RECOMMENDATION</span>
-            <span class="status ${statusClass}">
-              ${matchStatus}
-            </span>
-          </div>
-
-          <div class="vip-rank">
-            PICK #${index + 1}
-          </div>
-
-          <div class="teams">
-
-            <div class="team-side">
-              ${homeImage}
-              <div class="team-name">${home}</div>
-            </div>
-
-            <div class="vs">VS</div>
-
-            <div class="team-side away">
-              <div class="team-name">${away}</div>
-              ${awayImage}
-            </div>
-
-          </div>
-
-          <div class="prediction-market">
-            ${item.market}
-          </div>
-
-          <div class="confidence-line">
-            ${confidenceBars(probability)}
-            <span>Confidence:</span>
-            <strong>
-              ${probability.toFixed(1)}% · ${confidence}
-            </strong>
-          </div>
-
+          <div style="
+            color:#fff;
+            font-size:14px;
+            font-weight:900;
+            margin-top:3px;
+          ">${item.market}</div>
         </div>
-      `;
-    })
-    .join('');
+
+        <strong style="
+          color:#35ffad;
+          font-size:17px;
+          white-space:nowrap;
+        ">${Number(item.probability).toFixed(1)}%</strong>
+      </div>
+    `).join('');
+
+  recommendationsHTML = `
+    <div class="match-card">
+
+      <div class="match-top">
+        <span class="match-date">MATCH RECOMMENDATIONS</span>
+        <span class="status live">TOP 3 PICKS</span>
+      </div>
+
+      <div class="teams">
+
+        <div class="team-side">
+          ${homeImage}
+          <div class="team-name">${home}</div>
+        </div>
+
+        <div class="vs">VS</div>
+
+        <div class="team-side away">
+          <div class="team-name">${away}</div>
+          ${awayImage}
+        </div>
+
+      </div>
+
+      <div class="prediction-market">
+        CONFIDENCE
+      </div>
+
+      ${picksHTML}
+
+    </div>
+  `;
 
 } else {
 
   recommendationsHTML = `
-    <div class="empty-state">
+    <div class="match-card">
       No verified market probabilities available yet.
     </div>
   `;
-}
-
+    }
 
   /* TEAM FORM — KEEP EXISTING DESIGN */
 
