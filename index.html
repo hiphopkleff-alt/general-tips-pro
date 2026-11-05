@@ -449,6 +449,80 @@ function savePick(index){
   saveLocalPicks();updateDashboard();alert('Prediction saved successfully.');
 }
 
+/* VIP PREDICTIONS DISPLAY */
+function renderVIP(){
+  const container=$('vipList');
+  const summary=$('vipSummary');
+
+  if(!vipEntries.length){
+    container.innerHTML='<div class="empty">No recommendations are currently available. Please refresh later.</div>';
+    summary.textContent='No approved recommendations available.';
+    updateDashboard();
+    return;
+  }
+
+  summary.textContent=
+    `${vipEntries.length} recommended matches available · Ranked by highest probability`;
+
+  container.innerHTML=vipEntries.map((entry,index)=>{
+    const match=entry.match;
+    const recommendation=entry.recommendation;
+    const probability=entry.probability;
+
+    const home=escapeHTML(getHome(match));
+    const away=escapeHTML(getAway(match));
+    const date=escapeHTML(formatDate(getMatchDate(match)));
+
+    const fixtureIndex=currentFixtures.findIndex(
+      item=>String(getMatchId(item))===String(entry.matchId)
+    );
+
+    return `
+      <div class="vip-card">
+        <div class="vip-rank">VIP PICK #${index+1}</div>
+
+        <div class="match-top">
+          <span class="match-date">${date}</span>
+          <span class="status live">TOP PICK</span>
+        </div>
+
+        <div class="teams">
+          <div class="team-side">
+            <div class="team-name">${home}</div>
+          </div>
+
+          <div class="vs">VS</div>
+
+          <div class="team-side away">
+            <div class="team-name">${away}</div>
+          </div>
+        </div>
+
+        <div class="vip-market">
+          ${escapeHTML(recommendation.market)}
+        </div>
+
+        <div class="vip-confidence">
+          ${probability.toFixed(1)}%
+        </div>
+
+        <div class="confidence-line">
+          ${confidenceBars(probability)}
+          <span>Model confidence:</span>
+          <strong>${probability>=75?'High':probability>=60?'Medium':'Low'}</strong>
+        </div>
+
+        ${fixtureIndex>=0?`
+          <button class="analysis-button"
+            onclick="openMatch(${fixtureIndex})">
+            VIEW FULL ANALYSIS →
+          </button>`:''}
+      </div>
+    `;
+  }).join('');
+
+  updateDashboard();
+}  
 /* VIP recommendations only use live/upcoming currentFixtures. */
 async function buildVIP(forceRefresh){
   if(vipBuilding)return;
