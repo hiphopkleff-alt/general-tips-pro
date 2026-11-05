@@ -429,7 +429,61 @@ html+=renderMatchCard(match,index);
 container.innerHTML=html;
 updateDashboard();
 }
-  
+ /* OPEN MATCH ANALYSIS */
+async function openMatch(index){
+  const match=currentFixtures[index];
+
+  if(!match){
+    alert('Match information not found. Please refresh fixtures.');
+    return;
+  }
+
+  currentMatch=match;
+
+  showPage('match');
+
+  $('matchDetails').innerHTML=
+    '<div class="loading">Loading match analysis...</div>';
+
+  try{
+    const data=await fetchAnalysis(match);
+
+    if(!data){
+      throw new Error('No analysis data returned.');
+    }
+
+    currentAnalysis=data;
+
+    const id=getMatchId(match);
+
+    if(id!==null){
+      const recommendations=getRankedMarketRecommendations(data);
+
+      if(recommendations.length){
+        vipCache.set(String(id),{
+          data,
+          recommendation:recommendations[0],
+          probability:recommendations[0].probability
+        });
+
+        renderFixtures(currentFixtures);
+      }
+    }
+
+    renderMatchAnalysis(data);
+
+  }catch(error){
+    console.error('Match analysis error:',error);
+
+    $('matchDetails').innerHTML=
+      `<div class="panel error">
+        Unable to load match analysis.<br>
+        ${escapeHTML(error.message)}
+        <br><br>
+        Please try again.
+      </div>`;
+  }
+  } 
 /* RECOMMENDATION DISPLAY — preserved from the supplied version. */
 function renderMatchAnalysis(data){
   const match=data.match||currentMatch||{};
