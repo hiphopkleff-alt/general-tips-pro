@@ -80,4 +80,4 @@ try{savedPicks=JSON.parse(localStorage.getItem('gtp_picks')||'[]');if(!Array.isA
 try{finishedFixtures=JSON.parse(localStorage.getItem(FINISHED_FIXTURES_KEY)||'[]');if(!Array.isArray(finishedFixtures))finishedFixtures=[];}catch(e){finishedFixtures=[];}
 let vipEntries=[],vipCache=new Map(),vipBuilding=false,vipBuilt=false;
 
-function $(id)
+function $(id){return document.getElementById(id);}
