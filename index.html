@@ -429,6 +429,35 @@ html+=renderMatchCard(match,index);
 container.innerHTML=html;
 updateDashboard();
 }
+
+/* FETCH MATCH ANALYSIS */
+async function fetchAnalysis(match){
+  const id=getMatchId(match);
+
+  if(id===null||id===undefined){
+    throw new Error('Match ID is missing.');
+  }
+
+  const response=await fetch(
+    '/api/match/'+encodeURIComponent(id)+'/analysis',
+    {
+      headers:{'Accept':'application/json'}
+    }
+  );
+
+  if(!response.ok){
+    throw new Error('Analysis API error: HTTP '+response.status);
+  }
+
+  const data=await response.json();
+
+  if(data.error){
+    throw new Error(data.error);
+  }
+
+  return data;
+  }
+  
  /* OPEN MATCH ANALYSIS */
 async function openMatch(index){
   const match=currentFixtures[index];
