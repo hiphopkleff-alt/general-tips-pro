@@ -24,6 +24,29 @@ main{width:100%;max-width:760px;margin:auto;padding:17px 15px}.page{display:none
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(7,20,38,.98);border-top:1px solid var(--border);display:flex;justify-content:center;padding:9px 3px calc(9px + env(safe-area-inset-bottom))}.nav-inner{width:100%;max-width:760px;display:grid;grid-template-columns:repeat(5,1fr)}.nav-btn{background:transparent;border:0;color:var(--muted);padding:8px 2px;font-size:9px;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:5px}.nav-icon{font-size:19px}.nav-btn.active{color:var(--green2)}
 .analysis-match-header{background:linear-gradient(145deg,#102b43,#0c2035);border:1px solid var(--border);border-radius:15px;padding:16px;margin:15px 0}.analysis-league{text-align:center;color:var(--cyan);font-size:10px;font-weight:900;letter-spacing:1px}.analysis-teams{display:flex;justify-content:space-around;align-items:center;gap:8px;text-align:center;font-weight:900;font-size:14px;margin:17px 0}.analysis-teams span{color:var(--muted);font-size:10px}.analysis-date,.analysis-status{text-align:center;color:var(--muted);font-size:10px;margin-top:6px}.analysis-section{margin-top:16px}.analysis-section h3{font-size:13px;letter-spacing:1px;color:var(--green2);margin:0 0 11px}.recommendations-list{margin-top:8px}
 @media(min-width:600px){.stats-grid{grid-template-columns:repeat(4,1fr)}.team-name{font-size:14px}.team-logo{width:49px;height:49px;flex-basis:49px}}@media(max-width:380px){.team-form-grid{grid-template-columns:1fr}}
+
+  .day-separator{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:25px 0 14px;
+  padding:12px 15px;
+  background:linear-gradient(90deg,rgba(53,255,173,.13),rgba(53,255,173,.02));
+  border-left:4px solid var(--green);
+  border-radius:8px;
+  color:var(--green2);
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+
+.day-separator span{
+  font-size:11px;
+  color:#9bb5ca;
+  margin-left:auto;
+  letter-spacing:0;
+  }
 </style>
 </head>
 <body>
