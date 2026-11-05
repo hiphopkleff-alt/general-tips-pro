@@ -155,6 +155,98 @@ function normalizeMarket(value){return String(value||'').trim().toUpperCase().re
 function isApprovedMarket(recommendation){const market=normalizeMarket(recommendation?.market||recommendation?.name||'');return APPROVED_MARKETS.includes(market);}
 function getApprovedRecommendations(data){const recommendations=Array.isArray(data?.recommendations)?data.recommendations:[];return recommendations.filter(isApprovedMarket);}
 
+  const MARKET_DEFINITIONS=[
+  {name:'HOME WIN (1)',keys:['homeWin','home','1','home_win']},
+  {name:'DRAW (X)',keys:['draw','X']},
+  {name:'AWAY WIN (2)',keys:['awayWin','away','2','away_win']},
+  {name:'DOUBLE CHANCE 1X',keys:['doubleChance1X','1X','homeOrDraw']},
+  {name:'DOUBLE CHANCE X2',keys:['doubleChanceX2','X2','drawOrAway']},
+  {name:'DOUBLE CHANCE 12',keys:['doubleChance12','12','eitherTeamWin']},
+  {name:'OVER 0.5 GOALS',keys:['over0_5','over05','over0.5','over_0_5']},
+  {name:'OVER 1.5 GOALS',keys:['over1_5','over15','over1.5','over_1_5']},
+  {name:'OVER 2.5 GOALS',keys:['over2_5','over25','over2.5','over_2_5']},
+  {name:'OVER 3.5 GOALS',keys:['over3_5','over35','over3.5','over_3_5']},
+  {name:'UNDER 0.5 GOALS',keys:['under0_5','under05','under0.5','under_0_5']},
+  {name:'UNDER 1.5 GOALS',keys:['under1_5','under15','under1.5','under_1_5']},
+  {name:'UNDER 2.5 GOALS',keys:['under2_5','under25','under2.5','under_2_5']},
+  {name:'UNDER 3.5 GOALS',keys:['under3_5','under35','under3.5','under_3_5']},
+  {name:'BTTS YES',keys:['bttsYes','bothTeamsToScoreYes','btts_yes']},
+  {name:'BTTS NO',keys:['bttsNo','bothTeamsToScoreNo','btts_no']}
+];
+
+function normalizeMarketKey(value){
+  return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+
+function readMarketProbability(value){
+  if(value&&typeof value==='object'){
+    value=value.probability??value.prob??value.percentage??value.value??value.confidence;
+  }
+  let number=safeNumber(value);
+  if(number===null)return null;
+  if(number>0&&number<=1)number*=100;
+  if(number<0||number>100)return null;
+  return number;
+}
+
+function getRankedMarketRecommendations(data){
+  const results=new Map();
+  const probabilities=data?.probabilities||{};
+
+  MARKET_DEFINITIONS.forEach(definition=>{
+    const aliases=[...definition.keys,definition.name];
+
+    for(const key of aliases){
+      const actualKey=Object.keys(probabilities).find(
+        item=>normalizeMarketKey(item)===normalizeMarketKey(key)
+      );
+
+      if(actualKey!==undefined){
+        const probability=readMarketProbability(probabilities[actualKey]);
+
+        if(probability!==null){
+          results.set(definition.name,{
+            market:definition.name,
+            probability,
+            odds:null
+          });
+          break;
+        }
+      }
+    }
+  });
+
+  const apiRecommendations=Array.isArray(data?.recommendations)
+    ?data.recommendations:[ ];
+
+  apiRecommendations.forEach(item=>{
+    const marketName=item.market||item.name||'';
+    const normalized=normalizeMarketKey(marketName);
+
+    const definition=MARKET_DEFINITIONS.find(def=>{
+      return [...def.keys,def.name].some(
+        key=>normalizeMarketKey(key)===normalized
+      );
+    });
+
+    if(!definition)return;
+
+    const probability=readMarketProbability(item);
+    if(probability===null)return;
+
+    const existing=results.get(definition.name);
+
+    results.set(definition.name,{
+      market:definition.name,
+      probability,
+      odds:item.odds??item.price??item.decimalOdds??existing?.odds??null
+    });
+  });
+
+  return [...results.values()].sort(
+    (a,b)=>b.probability-a.probability
+  );
+  }
 function showPage(page,button){
   document.querySelectorAll('.page').forEach(section=>section.classList.remove('active'));
   const target=$(page);if(target)target.classList.add('active');
@@ -279,45 +371,70 @@ function renderTeamForm(form,homeName,awayName){
 
 /* RECOMMENDATION DISPLAY — preserved from the supplied version. */
 function renderMatchAnalysis(data){
-  const match=data.match||currentMatch||{},homeName=getHome(match),awayName=getAway(match),home=escapeHTML(homeName),away=escapeHTML(awayName),probabilities=data.probabilities||{};
-  const headerHTML=`<div class="analysis-match-header"><div class="analysis-league">${escapeHTML(match.competition?.name||match.league?.name||match.competition||'FOOTBALL MATCH')}</div><div class="analysis-teams"><div>${home}</div><span>VS</span><div>${away}</div></div><div class="analysis-date">${escapeHTML(formatDate(getMatchDate(match)))}</div><div class="analysis-status">${escapeHTML(getStatus(match))}</div></div>`;
-  const marketDefinitions=[
-    {name:'HOME WIN (1)',keys:['homeWin','home','1','home_win']},{name:'DRAW (X)',keys:['draw','X']},{name:'AWAY WIN (2)',keys:['awayWin','away','2','away_win']},
-    {name:'DOUBLE CHANCE 1X',keys:['doubleChance1X','1X','homeOrDraw']},{name:'DOUBLE CHANCE X2',keys:['doubleChanceX2','X2','drawOrAway']},{name:'DOUBLE CHANCE 12',keys:['doubleChance12','12','eitherTeamWin']},
-    {name:'OVER 0.5 GOALS',keys:['over0_5','over05','over0.5','over_0_5']},{name:'OVER 1.5 GOALS',keys:['over1_5','over15','over1.5','over_1_5']},{name:'OVER 2.5 GOALS',keys:['over2_5','over25','over2.5','over_2_5']},{name:'OVER 3.5 GOALS',keys:['over3_5','over35','over3.5','over_3_5']},
-    {name:'UNDER 0.5 GOALS',keys:['under0_5','under05','under0.5','under_0_5']},{name:'UNDER 1.5 GOALS',keys:['under1_5','under15','under1.5','under_1_5']},{name:'UNDER 2.5 GOALS',keys:['under2_5','under25','under2.5','under_2_5']},{name:'UNDER 3.5 GOALS',keys:['under3_5','under35','under3.5','under_3_5']},
-    {name:'BTTS YES',keys:['bttsYes','bothTeamsToScoreYes','btts_yes']},{name:'BTTS NO',keys:['bttsNo','bothTeamsToScoreNo','btts_no']}
-  ];
-  function readProbability(value){if(value&&typeof value==='object')value=value.probability??value.prob??value.percentage??value.value??value.confidence;let number=safeNumber(value);if(number===null)return null;if(number>0&&number<=1)number*=100;if(number<0||number>100)return null;return number;}
-  function findMarketProbability(keys){for(const key of keys){if(probabilities[key]!==undefined){const result=readProbability(probabilities[key]);if(result!==null)return result;}}return null;}
-  const availableRecommendations=[];
-  marketDefinitions.forEach(market=>{const probability=findMarketProbability(market.keys);if(probability!==null)availableRecommendations.push({market:market.name,probability:probability,odds:null});});
-  const apiRecommendations=Array.isArray(data.recommendations)?data.recommendations:[];
-  function normalizeMarketName(name){return String(name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
-  apiRecommendations.forEach(item=>{
-    const name=item.market||item.name||'',normalized=normalizeMarketName(name);
-    const definition=marketDefinitions.find(market=>market.keys.some(key=>normalizeMarketName(key)===normalized)||normalizeMarketName(market.name)===normalized);
-    if(!definition)return;const probability=readProbability(item);if(probability===null)return;
-    const existing=availableRecommendations.find(rec=>rec.market===definition.name);
-    if(existing){existing.probability=probability;existing.odds=item.odds??item.price??item.decimalOdds??existing.odds;}
-    else availableRecommendations.push({market:definition.name,probability:probability,odds:item.odds??item.price??item.decimalOdds??null});
-  });
-  availableRecommendations.sort((a,b)=>b.probability-a.probability);
+  const match=data.match||currentMatch||{};
+  const homeName=getHome(match);
+  const awayName=getAway(match);
+  const home=escapeHTML(homeName);
+  const away=escapeHTML(awayName);
+
+  const headerHTML=`
+    <div class="analysis-match-header">
+      <div class="analysis-league">
+        ${escapeHTML(match.competition?.name||match.league?.name||match.competition||'FOOTBALL MATCH')}
+      </div>
+      <div class="analysis-teams">
+        <div>${home}</div><span>VS</span><div>${away}</div>
+      </div>
+      <div class="analysis-date">${escapeHTML(formatDate(getMatchDate(match)))}</div>
+      <div class="analysis-status">${escapeHTML(getStatus(match))}</div>
+    </div>`;
+
+  const availableRecommendations=getRankedMarketRecommendations(data);
+
   let recommendationsHTML='';
-  if(availableRecommendations.length>0){
-    const homeLogo=getHomeLogo(match),awayLogo=getAwayLogo(match);
-    const homeImage=homeLogo?`<img class="team-logo" src="${escapeHTML(homeLogo)}" onerror="this.style.display='none'">`:'';
-    const awayImage=awayLogo?`<img class="team-logo" src="${escapeHTML(awayLogo)}" onerror="this.style.display='none'">`:'';
-    const picksHTML=availableRecommendations.slice(0,3).map((item,index)=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 10px;margin-top:9px;border:1px solid rgba(53,255,173,.45);border-radius:12px;background:rgba(53,255,173,.045)">
-      <span style="width:35px;height:35px;flex:0 0 35px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#087b58,#35ffad);color:#fff;font-size:16px;font-weight:900">${index+1}</span>
-      <div style="flex:1;min-width:0"><div style="color:#65ffc0;font-size:10px;font-weight:900;letter-spacing:1px">PICK ${index+1}</div><div style="color:#fff;font-size:14px;font-weight:900;margin-top:3px">${escapeHTML(item.market)}</div></div>
-      <strong style="color:#35ffad;font-size:17px;white-space:nowrap">${Number(item.probability).toFixed(1)}%</strong></div>`).join('');
-    recommendationsHTML=`<div class="match-card"><div class="match-top"><span class="match-date">MATCH RECOMMENDATIONS</span><span class="status live">TOP 3 PICKS</span></div>
-      <div class="teams"><div class="team-side">${homeImage}<div class="team-name">${home}</div></div><div class="vs">VS</div><div class="team-side away"><div class="team-name">${away}</div>${awayImage}</div></div>
-      <div class="prediction-market">CONFIDENCE</div>${picksHTML}</div>`;
-  }else recommendationsHTML='<div class="match-card">No verified market probabilities available yet.</div>';
-  const teamFormHTML=`<div class="analysis-section"><h3>TEAM FORM</h3>${renderTeamForm(data.teamForm,homeName,awayName)}</div>`;
-  $('matchDetails').innerHTML=`${headerHTML}<div class="analysis-section"><h3>RECOMMENDATION</h3><div class="recommendations-list">${recommendationsHTML}</div></div>${teamFormHTML}`;
+
+  if(availableRecommendations.length){
+    const picksHTML=availableRecommendations.slice(0,3).map((item,index)=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 10px;margin-top:9px;border:1px solid rgba(53,255,173,.45);border-radius:12px;background:rgba(53,255,173,.045)">
+        <span style="width:35px;height:35px;flex:0 0 35px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#087b58,#35ffad);color:#fff;font-size:16px;font-weight:900">${index+1}</span>
+        <div style="flex:1;min-width:0">
+          <div style="color:#65ffc0;font-size:10px;font-weight:900;letter-spacing:1px">PICK ${index+1}</div>
+          <div style="color:#fff;font-size:14px;font-weight:900;margin-top:3px">${escapeHTML(item.market)}</div>
+        </div>
+        <strong style="color:#35ffad;font-size:17px;white-space:nowrap">${item.probability.toFixed(1)}%</strong>
+      </div>`).join('');
+
+    recommendationsHTML=`
+      <div class="match-card">
+        <div class="match-top">
+          <span class="match-date">MATCH RECOMMENDATIONS</span>
+          <span class="status live">TOP 3 PICKS</span>
+        </div>
+        <div class="teams">
+          <div class="team-side"><div class="team-name">${home}</div></div>
+          <div class="vs">VS</div>
+          <div class="team-side away"><div class="team-name">${away}</div></div>
+        </div>
+        <div class="prediction-market">CONFIDENCE</div>
+        ${picksHTML}
+      </div>`;
+  }else{
+    recommendationsHTML='<div class="match-card">No market probabilities available yet.</div>';
+  }
+
+  const teamFormHTML=`
+    <div class="analysis-section">
+      <h3>TEAM FORM</h3>
+      ${renderTeamForm(data.teamForm,homeName,awayName)}
+    </div>`;
+
+  $('matchDetails').innerHTML=`
+    ${headerHTML}
+    <div class="analysis-section">
+      <h3>RECOMMENDATION</h3>
+      <div class="recommendations-list">${recommendationsHTML}</div>
+    </div>
+    ${teamFormHTML}`;
 }
 
 /* Save a recommendation */
@@ -335,38 +452,98 @@ function savePick(index){
 /* VIP recommendations only use live/upcoming currentFixtures. */
 async function buildVIP(forceRefresh){
   if(vipBuilding)return;
-  if(!currentFixtures.length){$('vipList').innerHTML='<div class="empty">No live or upcoming fixtures available for VIP analysis.</div>';$('vipSummary').textContent='No active fixtures to analyse.';vipEntries=[];vipBuilt=true;updateDashboard();return;}
-  vipBuilding=true;$('vipSummary').textContent='Analysing available matches...';
-  const matches=currentFixtures.slice();let completed=0;const results=[];let nextIndex=0;
+
+  if(!currentFixtures.length){
+    $('vipList').innerHTML='<div class="empty">No live or upcoming fixtures available for VIP analysis.</div>';
+    $('vipSummary').textContent='No active fixtures to analyse.';
+    vipEntries=[];
+    vipBuilt=true;
+    updateDashboard();
+    return;
+  }
+
+  vipBuilding=true;
+  $('vipSummary').textContent='Analysing available matches...';
+
+  const matches=currentFixtures.slice();
+  let completed=0;
+  const results=[];
+  let nextIndex=0;
+
   async function worker(){
     while(nextIndex<matches.length){
-      const index=nextIndex++,match=matches[index],id=getMatchId(match);
-      if(id===null||id===undefined){completed++;continue;}
+      const index=nextIndex++;
+      const match=matches[index];
+      const id=getMatchId(match);
+
+      if(id===null||id===undefined){
+        completed++;
+        continue;
+      }
+
       try{
-        const cacheKey=String(id);let data=null;
-        if(!forceRefresh&&vipCache.has(cacheKey))data=vipCache.get(cacheKey).data;
-        else{data=await fetchAnalysis(match);vipCache.set(cacheKey,{data:data,recommendation:null,probability:null});}
-        const recommendations=getApprovedRecommendations(data);
-        if(recommendations.length){
-          const ranked=recommendations.map(item=>({recommendation:item,probability:probabilityValue(item)})).filter(item=>item.probability!==null).sort((a,b)=>b.probability-a.probability);
-          if(ranked.length){const best=ranked[0];vipCache.set(cacheKey,{data:data,recommendation:best.recommendation,probability:best.probability});results.push({match:match,matchId:id,recommendation:best.recommendation,probability:best.probability});}
+        const cacheKey=String(id);
+        let data=null;
+
+        if(!forceRefresh&&vipCache.has(cacheKey)){
+          data=vipCache.get(cacheKey).data;
+        }else{
+          data=await fetchAnalysis(match);
         }
-      }catch(error){console.warn('VIP analysis failed:',id,error);}
-      completed++;$('vipSummary').textContent=`Analysed ${completed} of ${matches.length} matches...`;
+
+        const recommendations=getRankedMarketRecommendations(data);
+
+        if(recommendations.length){
+          const best=recommendations[0];
+
+          vipCache.set(cacheKey,{
+            data,
+            recommendation:best,
+            probability:best.probability
+          });
+
+          results.push({
+            match,
+            matchId:id,
+            recommendation:best,
+            probability:best.probability
+          });
+        }else{
+          vipCache.set(cacheKey,{
+            data,
+            recommendation:null,
+            probability:null
+          });
+        }
+
+      }catch(error){
+        console.warn('VIP analysis failed:',id,error);
+      }
+
+      completed++;
+      $('vipSummary').textContent=
+        `Analysed ${completed} of ${matches.length} matches...`;
     }
   }
+
   try{
-    await Promise.all(Array.from({length:Math.min(3,matches.length)},()=>worker()));
-    results.sort((a,b)=>b.probability-a.probability);vipEntries=results;vipBuilt=true;renderVIP();renderFixtures(currentFixtures);
-  }finally{vipBuilding=false;}
-}
-function renderVIP(){
-  if(!vipEntries.length){$('vipList').innerHTML='<div class="empty">No approved VIP recommendations are available yet. The system will not create artificial picks.</div>';$('vipSummary').textContent='No qualifying recommendations returned.';updateDashboard();return;}
-  $('vipSummary').textContent=`${vipEntries.length} analysed recommendations available.`;
-  $('vipList').innerHTML=vipEntries.map((entry,index)=>{
-    const market=entry.recommendation.market||entry.recommendation.name;
-    return `<div class="vip-card"><div class="vip-rank">VIP PICK #${index+1}</div><div class="vip-match">${escapeHTML(getHome(entry.match))} <span>VS</span> ${escapeHTML(getAway(entry.match))}</div><div class="vip-market">${escapeHTML(market)}</div><div class="vip-confidence">MODEL PROBABILITY: <strong>${entry.probability.toFixed(1)}%</strong></div>${confidenceBars(entry.probability)}<button class="analysis-button" onclick="openMatchById('${escapeHTML(entry.matchId)}')">VIEW FULL ANALYSIS</button></div>`;
-  }).join('');updateDashboard();
+    await Promise.all(
+      Array.from(
+        {length:Math.min(3,matches.length)},
+        ()=>worker()
+      )
+    );
+
+    results.sort((a,b)=>b.probability-a.probability);
+    vipEntries=results;
+    vipBuilt=true;
+
+    renderVIP();
+    renderFixtures(currentFixtures);
+
+  }finally{
+    vipBuilding=false;
+  }
 }
 
 /* History: completed fixtures and saved picks are shown separately. */
