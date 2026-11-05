@@ -344,54 +344,84 @@ function renderMatchCard(match,index){
     ${oddsHTML?`<div class="result-row">${oddsHTML}</div>`:''}${marketHTML}${confidenceHTML}
     <button class="analysis-button" onclick="openMatch(${index})">ANALYSIS →</button></div>`;
 }
+
 function renderFixtures(matches){
-  const active=(Array.isArray(matches)?matches:[]).filter(match=>getStatus(match)!=='ENDED');
-  currentFixtures=active;
-  if(!active.length){$('fixtureList').innerHTML='<div class="empty">No live or upcoming fixtures are currently available. Completed matches are moved to History automatically.</div>';updateDashboard();return;}
-  $('fixtureList').innerHTML=renderDateRange(active)+active.map((match,index)=>renderMatchCard(match,index)).join('');
-  updateDashboard();
-}
-async function fetchAnalysis(match){
-  const id=getMatchId(match);if(id===null||id===undefined)throw new Error('Match ID is missing.');
-  const response=await fetch('/api/match/'+encodeURIComponent(id)+'/analysis',{headers:{'Accept':'application/json'}});
-  if(!response.ok)throw new Error('Analysis API HTTP '+response.status);
-  return await response.json();
-}
-async function openMatch(index){
-  const match=currentFixtures[index];if(!match)return;
-  currentMatch=match;currentAnalysis=null;showPage('match');
-  $('matchDetails').innerHTML='<div class="loading">Analysing match. Please wait...</div>';
-  try{const data=await fetchAnalysis(match);currentAnalysis=data;renderMatchAnalysis(data);}
-  catch(error){$('matchDetails').innerHTML=`<div class="panel error">Unable to load match analysis.<br>${escapeHTML(error.message)}</div>`;}
-}
-async function openMatchById(id){const index=currentFixtures.findIndex(match=>String(getMatchId(match))===String(id));if(index>=0)await openMatch(index);}
+const container=$('fixtureList');
 
-/* TEAM FORM — preserved from the supplied version. */
-function getFormStats(value){
-  if(!value||typeof value!=='object')return null;const source=value;
-  const number=(...keys)=>{for(const key of keys){const result=safeNumber(source[key]);if(result!==null)return result;}return null;};
-  const form=Array.isArray(source.form)?source.form:Array.isArray(source.recentForm)?source.recentForm:[];
-  return {played:number('played','matchesPlayed','totalPlayed'),wins:number('wins','won'),draws:number('draws','draw'),losses:number('losses','lost'),goalsFor:number('goalsFor','goalsScored','scored'),goalsAgainst:number('goalsAgainst','goalsConceded','conceded'),averageGoalsFor:number('averageGoalsFor','avgGoalsFor','goalsForAverage'),averageGoalsAgainst:number('averageGoalsAgainst','avgGoalsAgainst','goalsAgainstAverage'),form:form};
-}
-function formChip(value){const letter=String(value||'').toUpperCase();let css='loss';if(letter==='W')css='win';if(letter==='D')css='draw';return `<span class="form-chip ${css}">${escapeHTML(letter)}</span>`;}
-function renderOneTeamForm(name,stats,side){
-  if(!stats)return `<div class="team-form-card ${side}-form"><div class="form-team-heading">${escapeHTML(name)}</div><div class="form-empty">Team form statistics are not available.</div></div>`;
-  const value=item=>item===null?'—':item;
-  const formHTML=stats.form.length?stats.form.slice(-10).map(formChip).join(''):'<span class="form-empty">No recent form supplied.</span>';
-  return `<div class="team-form-card ${side}-form"><div class="form-team-heading">${escapeHTML(name)}</div>
-    <div class="form-record"><div class="form-stat"><strong>${value(stats.played)}</strong><small>PLAYED</small></div><div class="form-stat"><strong>${value(stats.wins)}</strong><small>WINS</small></div><div class="form-stat"><strong>${value(stats.draws)}</strong><small>DRAWS</small></div><div class="form-stat"><strong>${value(stats.losses)}</strong><small>LOSSES</small></div></div>
-    <div class="form-goals"><div class="goal-stat"><small>GOALS FOR</small><strong>${value(stats.goalsFor)}</strong></div><div class="goal-stat"><small>GOALS AGAINST</small><strong>${value(stats.goalsAgainst)}</strong></div><div class="goal-stat"><small>AVG. GOALS FOR</small><strong>${value(stats.averageGoalsFor)}</strong></div><div class="goal-stat"><small>AVG. GOALS AGAINST</small><strong>${value(stats.averageGoalsAgainst)}</strong></div></div>
-    <div class="recent-label">RECENT FORM</div><div class="form-chips">${formHTML}</div></div>`;
-}
-function renderTeamForm(form,homeName,awayName){
-  if(!form)return '<div class="empty">Team form data is not available.</div>';
-  if(typeof form==='string')return `<p class="form-empty">${escapeHTML(form)}</p>`;
-  let homeData=null,awayData=null;
-  if(Array.isArray(form)){homeData=form[0]||null;awayData=form[1]||null;}
-  else{homeData=form.home??form.homeTeam??form.homeForm??null;awayData=form.away??form.awayTeam??form.awayForm??null;if(!homeData&&(form.played!==undefined||form.wins!==undefined||form.goalsFor!==undefined))homeData=form;}
-  return `<div class="team-form-grid">${renderOneTeamForm(homeName,getFormStats(homeData),'home')}${renderOneTeamForm(awayName,getFormStats(awayData),'away')}</div>`;
+const active=(Array.isArray(matches)?matches:[])
+.filter(match=>getStatus(match)!=='ENDED')
+.sort((a,b)=>new Date(getMatchDate(a))-new Date(getMatchDate(b)));
+
+currentFixtures=active;
+
+if(!active.length){
+container.innerHTML='<div class="empty">No live or upcoming fixtures are currently available. Completed matches are moved to History automatically.</div>';
+updateDashboard();
+return;
 }
 
+let html=renderDateRange(active);
+let previousDay='';
+
+active.forEach((match,index)=>{
+const matchDate=new Date(getMatchDate(match));
+
+if(Number.isNaN(matchDate.getTime())){
+  html+=renderMatchCard(match,index);
+  return;
+}
+
+const dayKey=matchDate.toLocaleDateString('en-CA',{
+  timeZone:'Africa/Lagos'
+});
+
+if(dayKey!==previousDay){
+  const today=new Date().toLocaleDateString('en-CA',{
+    timeZone:'Africa/Lagos'
+  });
+
+  const tomorrowDate=new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate()+1);
+
+  const tomorrow=tomorrowDate.toLocaleDateString('en-CA',{
+    timeZone:'Africa/Lagos'
+  });
+
+  let label=matchDate.toLocaleDateString('en-GB',{
+    timeZone:'Africa/Lagos',
+    weekday:'long',
+    day:'2-digit',
+    month:'long',
+    year:'numeric'
+  }).toUpperCase();
+
+  if(dayKey===today) label='TODAY · '+label;
+  else if(dayKey===tomorrow) label='TOMORROW · '+label;
+
+  const count=active.filter(item=>
+    new Date(getMatchDate(item)).toLocaleDateString(
+      'en-CA',{timeZone:'Africa/Lagos'}
+    )===dayKey
+  ).length;
+
+  html+=`
+    <div class="day-separator">
+      📅 ${label}
+      <span>${count} MATCHES</span>
+    </div>
+  `;
+
+  previousDay=dayKey;
+}
+
+html+=renderMatchCard(match,index);
+
+});
+
+container.innerHTML=html;
+updateDashboard();
+}
+  
 /* RECOMMENDATION DISPLAY — preserved from the supplied version. */
 function renderMatchAnalysis(data){
   const match=data.match||currentMatch||{};
