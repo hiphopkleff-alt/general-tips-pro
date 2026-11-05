@@ -80,4 +80,327 @@ try{savedPicks=JSON.parse(localStorage.getItem('gtp_picks')||'[]');if(!Array.isA
 try{finishedFixtures=JSON.parse(localStorage.getItem(FINISHED_FIXTURES_KEY)||'[]');if(!Array.isArray(finishedFixtures))finishedFixtures=[];}catch(e){finishedFixtures=[];}
 let vipEntries=[],vipCache=new Map(),vipBuilding=false,vipBuilt=false;
 
-function $(id){return document.getElementById(id);}
+function $(id)
+  {return document.getElementById(id);}
+function escapeHTML(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
+function safeNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
+function getTeamObject(value){return typeof value==='object'&&value!==null?value:{};}
+function getTeamName(value){if(typeof value==='string')return value;if(value&&typeof value==='object')return value.name||value.shortName||value.tla||'Unknown';return 'Unknown';}
+function getHome(match){return getTeamName(match?.homeTeam??match?.home??match?.teams?.home??match?.teamHome);}
+function getAway(match){return getTeamName(match?.awayTeam??match?.away??match?.teams?.away??match?.teamAway);}
+function getHomeLogo(match){const team=getTeamObject(match?.homeTeam??match?.teams?.home??match?.home);return team.crest||team.logo||team.image||match?.homeTeamCrest||match?.homeLogo||'';}
+function getAwayLogo(match){const team=getTeamObject(match?.awayTeam??match?.teams?.away??match?.away);return team.crest||team.logo||team.image||match?.awayTeamCrest||match?.awayLogo||'';}
+function getMatchId(match){return match?.id??match?.matchId??match?.fixtureId??null;}
+function getMatchDate(match){return match?.utcDate??match?.date??match?.kickoff??match?.matchDate??null;}
+function formatDate(value){if(!value)return 'Date unavailable';const date=new Date(value);if(Number.isNaN(date.getTime()))return String(value);return date.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+/* Detect common full-time status values from football APIs. Unknown statuses are not treated as ended. */
+function getStatus(match){
+  const raw=String(match?.status??match?.matchStatus??match?.fixture?.status?.short??match?.fixture?.status?.long??'UNKNOWN').toUpperCase().trim().replace(/[\s-]+/g,'_');
+  const live=['LIVE','IN_PLAY','PAUSED','1H','2H','HT','ET','P','FIRST_HALF','SECOND_HALF','EXTRA_TIME'];
+  const ended=['FINISHED','FT','AET','PEN','ENDED','COMPLETE','COMPLETED','FULL_TIME','FULLTIME','AFTER_EXTRA_TIME','AFTER_PENALTIES','FINISHED_AFTER_EXTRA_TIME','FINISHED_AFTER_PENALTIES','FT_PEN','MATCH_FINISHED'];
+  const upcoming=['SCHEDULED','TIMED','NOT_STARTED','UPCOMING','NS','TBD'];
+  if(live.includes(raw))return 'LIVE';
+  if(ended.includes(raw))return 'ENDED';
+  if(upcoming.includes(raw))return 'UPCOMING';
+  return raw.replace(/_/g,' ');
+}
+function getScore(match){
+  const score=match?.score??match?.goals??match?.fixture?.score;
+  if(!score)return '';
+  if(typeof score==='string')return score;
+  const full=score.fullTime??score.fulltime??score;
+  const home=full.home??full.homeTeam??score.home??score.homeTeam;
+  const away=full.away??full.awayTeam??score.away??score.awayTeam;
+  if(home===null||away===null||home===undefined||away===undefined)return '';
+  return `${home} - ${away}`;
+}
+function fixtureKey(match){
+  const id=getMatchId(match);
+  if(id!==null&&id!==undefined&&String(id)!=='')return 'id:'+String(id);
+  return [getHome(match),getAway(match),getMatchDate(match)||''].join('|').toLowerCase();
+}
+function saveFinishedFixtures(){try{localStorage.setItem(FINISHED_FIXTURES_KEY,JSON.stringify(finishedFixtures));}catch(e){console.error('Unable to persist completed fixtures',e);}}
+function archiveFinishedFixture(match){
+  if(!match)return;
+  const key=fixtureKey(match),index=finishedFixtures.findIndex(item=>fixtureKey(item)===key);
+  const archived={...match,status:'ENDED',archivedAt:match.archivedAt||new Date().toISOString()};
+  if(index>=0)finishedFixtures[index]={...finishedFixtures[index],...archived};
+  else finishedFixtures.unshift(archived);
+}
+function archiveAndFilterFixtures(matches){
+  const active=[];
+  (Array.isArray(matches)?matches:[]).forEach(match=>{
+    if(getStatus(match)==='ENDED')archiveFinishedFixture(match);
+    else{
+      // Once a fixture is archived, do not allow a stale API response to put it back in Predictions.
+      const key=fixtureKey(match);
+      const alreadyArchived=finishedFixtures.some(item=>fixtureKey(item)===key);
+      if(!alreadyArchived)active.push(match);
+      else archiveFinishedFixture(match);
+    }
+  });
+  saveFinishedFixtures();
+  return active;
+}
+function probabilityValue(recommendation){
+  let value=safeNumber(recommendation?.probability??recommendation?.confidence??recommendation?.percentage);
+  if(value===null)return null;if(value>0&&value<=1)value*=100;return Math.max(0,Math.min(100,value));
+}
+function confidenceLevel(probability){if(probability>=80)return 'level-high';if(probability>=65)return 'level-medium';return 'level-low';}
+function confidenceBars(probability){return `<div class="confidence-bars ${confidenceLevel(probability)}"><span></span><span></span><span></span><span></span><span></span></div>`;}
+function saveLocalPicks(){try{localStorage.setItem('gtp_picks',JSON.stringify(savedPicks));}catch(error){console.error('Unable to save picks:',error);alert('Unable to save. Your device storage may be full.');}}
+const APPROVED_MARKETS=['1','X','2','1X','X2','12','BTTS YES','BTTS NO'];
+function normalizeMarket(value){return String(value||'').trim().toUpperCase().replace(/[_-]/g,' ').replace(/\s+/g,' ');}
+function isApprovedMarket(recommendation){const market=normalizeMarket(recommendation?.market||recommendation?.name||'');return APPROVED_MARKETS.includes(market);}
+function getApprovedRecommendations(data){const recommendations=Array.isArray(data?.recommendations)?data.recommendations:[];return recommendations.filter(isApprovedMarket);}
+
+function showPage(page,button){
+  document.querySelectorAll('.page').forEach(section=>section.classList.remove('active'));
+  const target=$(page);if(target)target.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(nav=>nav.classList.remove('active'));
+  if(button)button.classList.add('active');else{const nav=document.querySelector(`.nav-btn[data-page="${page}"]`);if(nav)nav.classList.add('active');}
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='history')renderHistory();
+  if(page==='vip'&&!vipBuilt&&!vipBuilding)buildVIP(false);
+}
+function updateDashboard(){
+  $('predictionCount').textContent=currentFixtures.length;
+  $('vipCount').textContent=vipEntries.filter(entry=>entry.recommendation).length;
+  $('recordedCount').textContent=savedPicks.length;
+  const graded=savedPicks.filter(pick=>pick.result==='WON'||pick.result==='LOST');
+  const wins=graded.filter(pick=>pick.result==='WON').length;
+  const accuracy=graded.length?wins/graded.length*100:0;
+  $('accuracy').textContent=graded.length?accuracy.toFixed(1)+'%':'0%';
+  $('historyTotal').textContent=savedPicks.length;
+  $('historyAccuracy').textContent=graded.length?accuracy.toFixed(1)+'%':'0%';
+}
+
+/* FIXTURE API: ended matches are archived, never rendered in Predictions. */
+async function loadFixtures(){
+  const button=$('refreshBtn');if(button){button.disabled=true;button.textContent='LOADING...';}
+  $('fixtureMessage').innerHTML='';$('fixtureList').innerHTML='<div class="loading">Connecting to football data...</div>';
+  try{
+    const response=await fetch('/api/fixtures',{headers:{'Accept':'application/json'}});
+    if(!response.ok)throw new Error('Fixture API HTTP '+response.status);
+    const data=await response.json();
+    if(!Array.isArray(data.matches))throw new Error('The API did not return a matches list.');
+    currentFixtures=archiveAndFilterFixtures(data.matches);
+    vipCache.clear();vipEntries=[];vipBuilt=false;
+    renderFixtures(currentFixtures);
+    $('vipSummary').textContent='Preparing analysis for available matches...';
+    $('vipList').innerHTML='<div class="loading">Building VIP recommendations...</div>';
+    updateDashboard();renderHistory();
+    buildVIP(false);
+  }catch(error){
+    $('fixtureList').innerHTML=`<div class="panel error">Unable to load fixtures.<br>${escapeHTML(error.message)}</div>`;
+    $('fixtureMessage').innerHTML='<div class="notice">Check that your backend is running and /api/fixtures is available. Previously archived completed matches remain in History on this device.</div>';
+    renderHistory();
+  }finally{if(button){button.disabled=false;button.textContent='REFRESH';}}
+}
+function renderDateRange(matches){
+  const dates=matches.map(match=>getMatchDate(match)).filter(Boolean).map(value=>new Date(value)).filter(date=>!Number.isNaN(date.getTime())).sort((a,b)=>a-b);
+  if(!dates.length)return `<div class="date-banner"><div class="date-icon">▦</div><div class="date-range">AVAILABLE MATCH FIXTURES</div></div>`;
+  const start=dates[0].toISOString().slice(0,10),end=dates[dates.length-1].toISOString().slice(0,10);
+  return `<div class="date-banner"><div class="date-icon">▦</div><div class="date-range">${escapeHTML(start)} — ${escapeHTML(end)}</div></div>`;
+}
+function getVerifiedResult(match){const value=String(match?.result??match?.predictionResult??'').toUpperCase();return value==='WON'||value==='LOST'?value:null;}
+function renderMatchCard(match,index){
+  const id=getMatchId(match),vip=id!==null?vipCache.get(String(id)):null;
+  const recommendation=vip?.recommendation||null,probability=vip?.probability??null;
+  const home=escapeHTML(getHome(match)),away=escapeHTML(getAway(match));
+  const homeLogo=getHomeLogo(match),awayLogo=getAwayLogo(match);
+  const status=getStatus(match),score=getScore(match),date=formatDate(getMatchDate(match));
+  const statusClass=status==='LIVE'?'live':'';
+  const odds=recommendation?.odds??recommendation?.price??recommendation?.decimalOdds??null;
+  const oddsHTML=odds!==null&&odds!==undefined?`<span class="odds-pill">${escapeHTML(odds)}</span>`:'';
+  let marketHTML='',confidenceHTML='';
+  if(recommendation&&probability!==null){
+    marketHTML=`<div class="prediction-market">${escapeHTML(recommendation.market||recommendation.name)}</div>`;
+    confidenceHTML=`<div class="confidence-line">${confidenceBars(probability)}<span>Confidence:</span><strong>${probability.toFixed(1)}% · ${probability>=75?'High':probability>=60?'Medium':'Low'}</strong></div>`;
+  }else{
+    marketHTML='<div class="prediction-market" style="font-size:12px;letter-spacing:1px">ANALYSIS PENDING</div>';
+    confidenceHTML='<div class="confidence-line">Confidence: <strong>Awaiting analysis</strong></div>';
+  }
+  return `<div class="match-card"><div class="match-top"><span class="match-date">${escapeHTML(date)}</span><span class="status ${statusClass}">${escapeHTML(status)}</span></div>
+    <div class="teams"><div class="team-side">${homeLogo?`<img class="team-logo" src="${escapeHTML(homeLogo)}" alt="" onerror="this.style.display='none'">`:''}<div class="team-name">${home}</div></div>
+    ${score?`<div class="score">${escapeHTML(score)}</div>`:'<div class="vs">VS</div>'}
+    <div class="team-side away"><div class="team-name">${away}</div>${awayLogo?`<img class="team-logo" src="${escapeHTML(awayLogo)}" alt="" onerror="this.style.display='none'">`:''}</div></div>
+    ${oddsHTML?`<div class="result-row">${oddsHTML}</div>`:''}${marketHTML}${confidenceHTML}
+    <button class="analysis-button" onclick="openMatch(${index})">ANALYSIS →</button></div>`;
+}
+function renderFixtures(matches){
+  const active=(Array.isArray(matches)?matches:[]).filter(match=>getStatus(match)!=='ENDED');
+  currentFixtures=active;
+  if(!active.length){$('fixtureList').innerHTML='<div class="empty">No live or upcoming fixtures are currently available. Completed matches are moved to History automatically.</div>';updateDashboard();return;}
+  $('fixtureList').innerHTML=renderDateRange(active)+active.map((match,index)=>renderMatchCard(match,index)).join('');
+  updateDashboard();
+}
+async function fetchAnalysis(match){
+  const id=getMatchId(match);if(id===null||id===undefined)throw new Error('Match ID is missing.');
+  const response=await fetch('/api/match/'+encodeURIComponent(id)+'/analysis',{headers:{'Accept':'application/json'}});
+  if(!response.ok)throw new Error('Analysis API HTTP '+response.status);
+  return await response.json();
+}
+async function openMatch(index){
+  const match=currentFixtures[index];if(!match)return;
+  currentMatch=match;currentAnalysis=null;showPage('match');
+  $('matchDetails').innerHTML='<div class="loading">Analysing match. Please wait...</div>';
+  try{const data=await fetchAnalysis(match);currentAnalysis=data;renderMatchAnalysis(data);}
+  catch(error){$('matchDetails').innerHTML=`<div class="panel error">Unable to load match analysis.<br>${escapeHTML(error.message)}</div>`;}
+}
+async function openMatchById(id){const index=currentFixtures.findIndex(match=>String(getMatchId(match))===String(id));if(index>=0)await openMatch(index);}
+
+/* TEAM FORM — preserved from the supplied version. */
+function getFormStats(value){
+  if(!value||typeof value!=='object')return null;const source=value;
+  const number=(...keys)=>{for(const key of keys){const result=safeNumber(source[key]);if(result!==null)return result;}return null;};
+  const form=Array.isArray(source.form)?source.form:Array.isArray(source.recentForm)?source.recentForm:[];
+  return {played:number('played','matchesPlayed','totalPlayed'),wins:number('wins','won'),draws:number('draws','draw'),losses:number('losses','lost'),goalsFor:number('goalsFor','goalsScored','scored'),goalsAgainst:number('goalsAgainst','goalsConceded','conceded'),averageGoalsFor:number('averageGoalsFor','avgGoalsFor','goalsForAverage'),averageGoalsAgainst:number('averageGoalsAgainst','avgGoalsAgainst','goalsAgainstAverage'),form:form};
+}
+function formChip(value){const letter=String(value||'').toUpperCase();let css='loss';if(letter==='W')css='win';if(letter==='D')css='draw';return `<span class="form-chip ${css}">${escapeHTML(letter)}</span>`;}
+function renderOneTeamForm(name,stats,side){
+  if(!stats)return `<div class="team-form-card ${side}-form"><div class="form-team-heading">${escapeHTML(name)}</div><div class="form-empty">Team form statistics are not available.</div></div>`;
+  const value=item=>item===null?'—':item;
+  const formHTML=stats.form.length?stats.form.slice(-10).map(formChip).join(''):'<span class="form-empty">No recent form supplied.</span>';
+  return `<div class="team-form-card ${side}-form"><div class="form-team-heading">${escapeHTML(name)}</div>
+    <div class="form-record"><div class="form-stat"><strong>${value(stats.played)}</strong><small>PLAYED</small></div><div class="form-stat"><strong>${value(stats.wins)}</strong><small>WINS</small></div><div class="form-stat"><strong>${value(stats.draws)}</strong><small>DRAWS</small></div><div class="form-stat"><strong>${value(stats.losses)}</strong><small>LOSSES</small></div></div>
+    <div class="form-goals"><div class="goal-stat"><small>GOALS FOR</small><strong>${value(stats.goalsFor)}</strong></div><div class="goal-stat"><small>GOALS AGAINST</small><strong>${value(stats.goalsAgainst)}</strong></div><div class="goal-stat"><small>AVG. GOALS FOR</small><strong>${value(stats.averageGoalsFor)}</strong></div><div class="goal-stat"><small>AVG. GOALS AGAINST</small><strong>${value(stats.averageGoalsAgainst)}</strong></div></div>
+    <div class="recent-label">RECENT FORM</div><div class="form-chips">${formHTML}</div></div>`;
+}
+function renderTeamForm(form,homeName,awayName){
+  if(!form)return '<div class="empty">Team form data is not available.</div>';
+  if(typeof form==='string')return `<p class="form-empty">${escapeHTML(form)}</p>`;
+  let homeData=null,awayData=null;
+  if(Array.isArray(form)){homeData=form[0]||null;awayData=form[1]||null;}
+  else{homeData=form.home??form.homeTeam??form.homeForm??null;awayData=form.away??form.awayTeam??form.awayForm??null;if(!homeData&&(form.played!==undefined||form.wins!==undefined||form.goalsFor!==undefined))homeData=form;}
+  return `<div class="team-form-grid">${renderOneTeamForm(homeName,getFormStats(homeData),'home')}${renderOneTeamForm(awayName,getFormStats(awayData),'away')}</div>`;
+}
+
+/* RECOMMENDATION DISPLAY — preserved from the supplied version. */
+function renderMatchAnalysis(data){
+  const match=data.match||currentMatch||{},homeName=getHome(match),awayName=getAway(match),home=escapeHTML(homeName),away=escapeHTML(awayName),probabilities=data.probabilities||{};
+  const headerHTML=`<div class="analysis-match-header"><div class="analysis-league">${escapeHTML(match.competition?.name||match.league?.name||match.competition||'FOOTBALL MATCH')}</div><div class="analysis-teams"><div>${home}</div><span>VS</span><div>${away}</div></div><div class="analysis-date">${escapeHTML(formatDate(getMatchDate(match)))}</div><div class="analysis-status">${escapeHTML(getStatus(match))}</div></div>`;
+  const marketDefinitions=[
+    {name:'HOME WIN (1)',keys:['homeWin','home','1','home_win']},{name:'DRAW (X)',keys:['draw','X']},{name:'AWAY WIN (2)',keys:['awayWin','away','2','away_win']},
+    {name:'DOUBLE CHANCE 1X',keys:['doubleChance1X','1X','homeOrDraw']},{name:'DOUBLE CHANCE X2',keys:['doubleChanceX2','X2','drawOrAway']},{name:'DOUBLE CHANCE 12',keys:['doubleChance12','12','eitherTeamWin']},
+    {name:'OVER 0.5 GOALS',keys:['over0_5','over05','over0.5','over_0_5']},{name:'OVER 1.5 GOALS',keys:['over1_5','over15','over1.5','over_1_5']},{name:'OVER 2.5 GOALS',keys:['over2_5','over25','over2.5','over_2_5']},{name:'OVER 3.5 GOALS',keys:['over3_5','over35','over3.5','over_3_5']},
+    {name:'UNDER 0.5 GOALS',keys:['under0_5','under05','under0.5','under_0_5']},{name:'UNDER 1.5 GOALS',keys:['under1_5','under15','under1.5','under_1_5']},{name:'UNDER 2.5 GOALS',keys:['under2_5','under25','under2.5','under_2_5']},{name:'UNDER 3.5 GOALS',keys:['under3_5','under35','under3.5','under_3_5']},
+    {name:'BTTS YES',keys:['bttsYes','bothTeamsToScoreYes','btts_yes']},{name:'BTTS NO',keys:['bttsNo','bothTeamsToScoreNo','btts_no']}
+  ];
+  function readProbability(value){if(value&&typeof value==='object')value=value.probability??value.prob??value.percentage??value.value??value.confidence;let number=safeNumber(value);if(number===null)return null;if(number>0&&number<=1)number*=100;if(number<0||number>100)return null;return number;}
+  function findMarketProbability(keys){for(const key of keys){if(probabilities[key]!==undefined){const result=readProbability(probabilities[key]);if(result!==null)return result;}}return null;}
+  const availableRecommendations=[];
+  marketDefinitions.forEach(market=>{const probability=findMarketProbability(market.keys);if(probability!==null)availableRecommendations.push({market:market.name,probability:probability,odds:null});});
+  const apiRecommendations=Array.isArray(data.recommendations)?data.recommendations:[];
+  function normalizeMarketName(name){return String(name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+  apiRecommendations.forEach(item=>{
+    const name=item.market||item.name||'',normalized=normalizeMarketName(name);
+    const definition=marketDefinitions.find(market=>market.keys.some(key=>normalizeMarketName(key)===normalized)||normalizeMarketName(market.name)===normalized);
+    if(!definition)return;const probability=readProbability(item);if(probability===null)return;
+    const existing=availableRecommendations.find(rec=>rec.market===definition.name);
+    if(existing){existing.probability=probability;existing.odds=item.odds??item.price??item.decimalOdds??existing.odds;}
+    else availableRecommendations.push({market:definition.name,probability:probability,odds:item.odds??item.price??item.decimalOdds??null});
+  });
+  availableRecommendations.sort((a,b)=>b.probability-a.probability);
+  let recommendationsHTML='';
+  if(availableRecommendations.length>0){
+    const homeLogo=getHomeLogo(match),awayLogo=getAwayLogo(match);
+    const homeImage=homeLogo?`<img class="team-logo" src="${escapeHTML(homeLogo)}" onerror="this.style.display='none'">`:'';
+    const awayImage=awayLogo?`<img class="team-logo" src="${escapeHTML(awayLogo)}" onerror="this.style.display='none'">`:'';
+    const picksHTML=availableRecommendations.slice(0,3).map((item,index)=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 10px;margin-top:9px;border:1px solid rgba(53,255,173,.45);border-radius:12px;background:rgba(53,255,173,.045)">
+      <span style="width:35px;height:35px;flex:0 0 35px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#087b58,#35ffad);color:#fff;font-size:16px;font-weight:900">${index+1}</span>
+      <div style="flex:1;min-width:0"><div style="color:#65ffc0;font-size:10px;font-weight:900;letter-spacing:1px">PICK ${index+1}</div><div style="color:#fff;font-size:14px;font-weight:900;margin-top:3px">${escapeHTML(item.market)}</div></div>
+      <strong style="color:#35ffad;font-size:17px;white-space:nowrap">${Number(item.probability).toFixed(1)}%</strong></div>`).join('');
+    recommendationsHTML=`<div class="match-card"><div class="match-top"><span class="match-date">MATCH RECOMMENDATIONS</span><span class="status live">TOP 3 PICKS</span></div>
+      <div class="teams"><div class="team-side">${homeImage}<div class="team-name">${home}</div></div><div class="vs">VS</div><div class="team-side away"><div class="team-name">${away}</div>${awayImage}</div></div>
+      <div class="prediction-market">CONFIDENCE</div>${picksHTML}</div>`;
+  }else recommendationsHTML='<div class="match-card">No verified market probabilities available yet.</div>';
+  const teamFormHTML=`<div class="analysis-section"><h3>TEAM FORM</h3>${renderTeamForm(data.teamForm,homeName,awayName)}</div>`;
+  $('matchDetails').innerHTML=`${headerHTML}<div class="analysis-section"><h3>RECOMMENDATION</h3><div class="recommendations-list">${recommendationsHTML}</div></div>${teamFormHTML}`;
+}
+
+/* Save a recommendation */
+function savePick(index){
+  if(!currentAnalysis||!currentMatch){alert('Match analysis is not available.');return;}
+  const recommendations=getApprovedRecommendations(currentAnalysis),recommendation=recommendations[index];
+  if(!recommendation||!isApprovedMarket(recommendation)){alert('This market is not approved.');return;}
+  const matchId=getMatchId(currentMatch);
+  const alreadySaved=savedPicks.some(pick=>String(pick.matchId)===String(matchId)&&normalizeMarket(pick.market)===normalizeMarket(recommendation.market||recommendation.name));
+  if(alreadySaved){alert('You have already saved this pick.');return;}
+  savedPicks.unshift({id:Date.now(),matchId:matchId,home:getHome(currentMatch),away:getAway(currentMatch),market:recommendation.market||recommendation.name,probability:probabilityValue(recommendation),odds:recommendation.odds??recommendation.price??recommendation.decimalOdds??null,date:new Date().toISOString(),result:'PENDING'});
+  saveLocalPicks();updateDashboard();alert('Prediction saved successfully.');
+}
+
+/* VIP recommendations only use live/upcoming currentFixtures. */
+async function buildVIP(forceRefresh){
+  if(vipBuilding)return;
+  if(!currentFixtures.length){$('vipList').innerHTML='<div class="empty">No live or upcoming fixtures available for VIP analysis.</div>';$('vipSummary').textContent='No active fixtures to analyse.';vipEntries=[];vipBuilt=true;updateDashboard();return;}
+  vipBuilding=true;$('vipSummary').textContent='Analysing available matches...';
+  const matches=currentFixtures.slice();let completed=0;const results=[];let nextIndex=0;
+  async function worker(){
+    while(nextIndex<matches.length){
+      const index=nextIndex++,match=matches[index],id=getMatchId(match);
+      if(id===null||id===undefined){completed++;continue;}
+      try{
+        const cacheKey=String(id);let data=null;
+        if(!forceRefresh&&vipCache.has(cacheKey))data=vipCache.get(cacheKey).data;
+        else{data=await fetchAnalysis(match);vipCache.set(cacheKey,{data:data,recommendation:null,probability:null});}
+        const recommendations=getApprovedRecommendations(data);
+        if(recommendations.length){
+          const ranked=recommendations.map(item=>({recommendation:item,probability:probabilityValue(item)})).filter(item=>item.probability!==null).sort((a,b)=>b.probability-a.probability);
+          if(ranked.length){const best=ranked[0];vipCache.set(cacheKey,{data:data,recommendation:best.recommendation,probability:best.probability});results.push({match:match,matchId:id,recommendation:best.recommendation,probability:best.probability});}
+        }
+      }catch(error){console.warn('VIP analysis failed:',id,error);}
+      completed++;$('vipSummary').textContent=`Analysed ${completed} of ${matches.length} matches...`;
+    }
+  }
+  try{
+    await Promise.all(Array.from({length:Math.min(3,matches.length)},()=>worker()));
+    results.sort((a,b)=>b.probability-a.probability);vipEntries=results;vipBuilt=true;renderVIP();renderFixtures(currentFixtures);
+  }finally{vipBuilding=false;}
+}
+function renderVIP(){
+  if(!vipEntries.length){$('vipList').innerHTML='<div class="empty">No approved VIP recommendations are available yet. The system will not create artificial picks.</div>';$('vipSummary').textContent='No qualifying recommendations returned.';updateDashboard();return;}
+  $('vipSummary').textContent=`${vipEntries.length} analysed recommendations available.`;
+  $('vipList').innerHTML=vipEntries.map((entry,index)=>{
+    const market=entry.recommendation.market||entry.recommendation.name;
+    return `<div class="vip-card"><div class="vip-rank">VIP PICK #${index+1}</div><div class="vip-match">${escapeHTML(getHome(entry.match))} <span>VS</span> ${escapeHTML(getAway(entry.match))}</div><div class="vip-market">${escapeHTML(market)}</div><div class="vip-confidence">MODEL PROBABILITY: <strong>${entry.probability.toFixed(1)}%</strong></div>${confidenceBars(entry.probability)}<button class="analysis-button" onclick="openMatchById('${escapeHTML(entry.matchId)}')">VIEW FULL ANALYSIS</button></div>`;
+  }).join('');updateDashboard();
+}
+
+/* History: completed fixtures and saved picks are shown separately. */
+function renderFinishedHistory(){
+  const container=$('finishedHistory');
+  if(!finishedFixtures.length){container.innerHTML='<div class="empty">No completed matches have been recorded yet.</div>';return;}
+  const sorted=finishedFixtures.slice().sort((a,b)=>{
+    const da=new Date(getMatchDate(a)||a.archivedAt||0).getTime(),db=new Date(getMatchDate(b)||b.archivedAt||0).getTime();return db-da;
+  });
+  container.innerHTML=`<div class="page-subtitle" style="font-weight:900;margin:18px 0 10px">COMPLETED MATCHES (${sorted.length})</div>`+sorted.map(match=>{
+    const score=getScore(match),competition=match.competition?.name||match.league?.name||match.competition||match.league||'FOOTBALL';
+    return `<div class="history-item"><h3>${escapeHTML(getHome(match))} <span style="color:var(--muted);font-size:10px">VS</span> ${escapeHTML(getAway(match))}</h3><p>${escapeHTML(competition)}<br>${escapeHTML(formatDate(getMatchDate(match)))}<br><strong style="color:var(--green2);font-size:15px">${score?escapeHTML(score):'Final score not supplied by API'}</strong><br><span style="color:var(--yellow);font-weight:900">ENDED</span></p></div>`;
+  }).join('');
+}
+function renderHistory(){
+  updateDashboard();renderFinishedHistory();
+  if(!savedPicks.length){$('historyList').innerHTML='<div class="empty">No saved predictions yet.</div>';return;}
+  $('historyList').innerHTML=savedPicks.map(pick=>{
+    const result=pick.result||'PENDING',resultClass=result==='WON'?'result-pill':result==='LOST'?'result-pill lost':'result-pill pending';
+    return `<div class="history-card"><div class="history-top"><span>${escapeHTML(formatDate(pick.date))}</span><span class="${resultClass}">${escapeHTML(result)}</span></div><div class="history-match">${escapeHTML(pick.home)} <span>VS</span> ${escapeHTML(pick.away)}</div><div class="history-market">${escapeHTML(pick.market)}</div><div class="history-details"><span>Probability: ${pick.probability===null||pick.probability===undefined?'—':Number(pick.probability).toFixed(1)+'%'}</span><span>Odds: ${pick.odds===null||pick.odds===undefined?'—':escapeHTML(pick.odds)}</span></div></div>`;
+  }).join('');
+}
+function clearHistory(){
+  if(!savedPicks.length){alert('There are no saved picks to clear.');return;}
+  if(!confirm('Are you sure you want to clear all saved predictions from this device?'))return;
+  savedPicks=[];saveLocalPicks();renderHistory();updateDashboard();
+}
+async function checkConnection(){
+  const target=$('connectionStatus');if(target)target.textContent='Checking connection...';
+  try{const response=await fetch('/api/fixtures',{headers:{'Accept':'application/json'}});if(!response.ok)throw new Error('HTTP '+response.status);const data=await response.json();if(target)target.textContent=Array.isArray(data.matches)?'CONNECTED · '+data.matches.length+' fixtures returned':'CONNECTED · Fixture format needs checking';}
+  catch(error){if(target)target.textContent='NOT CONNECTED · '+error.message;}
+}
+function refreshVIP(){vipCache.clear();vipEntries=[];vipBuilt=false;buildVIP(true);}
+document.addEventListener('DOMContentLoaded',()=>{updateDashboard();renderHistory();loadFixtures();checkConnection();});
+</script>
+</body>
+</html>
