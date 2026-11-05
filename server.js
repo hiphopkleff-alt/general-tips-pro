@@ -12,7 +12,9 @@ const API_BASE = "https://api.football-data.org/v4";
 
 const fixtureCache = {
 data: null,
-expiresAt: 0
+expiresAt: 0,
+dateFrom: null,
+dateTo: null
 };
 
 const analysisCache = new Map();
@@ -35,11 +37,31 @@ if (!response.ok) {
 const error = new Error(
 "Football data provider returned HTTP " + response.status
 );
+
 error.status = response.status;
 throw error;
+
 }
 
 return response.json();
+}
+
+/* DATE RANGE: TODAY THROUGH THE NEXT 7 DAYS */
+
+function getFixtureDateRange() {
+const today = new Date();
+
+const dateFrom = today.toISOString().slice(0, 10);
+
+const nextWeek = new Date(today);
+nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
+
+const dateTo = nextWeek.toISOString().slice(0, 10);
+
+return {
+dateFrom,
+dateTo
+};
 }
 
 function cacheGet(cache, key) {
@@ -108,9 +130,9 @@ awayWin: away * 100,
 over15: over15 * 100,
 over25: over25 * 100,
 over35: over35 * 100,
-under15: (1 - over15 / 1) * 100,
-under25: (1 - over25 / 1) * 100,
-under35: (1 - over35 / 1) * 100,
+under15: (1 - over15) * 100,
+under25: (1 - over25) * 100,
+under35: (1 - over35) * 100,
 bttsYes: bttsYes * 100,
 bttsNo: (1 - bttsYes) * 100
 };
@@ -134,11 +156,8 @@ for (const match of finished) {
 const homeId = match.homeTeam?.id;
 const awayId = match.awayTeam?.id;
 
-const homeGoals =
-  match.score?.fullTime?.home;
-
-const awayGoals =
-  match.score?.fullTime?.away;
+const homeGoals = match.score?.fullTime?.home;
+const awayGoals = match.score?.fullTime?.away;
 
 if (
   homeGoals === null ||
@@ -273,6 +292,8 @@ item.probability >= 58 ? "MODERATE" :
 }));
 }
 
+/* HEALTH CHECK */
+
 app.get("/api/health", (req, res) => {
 res.json({
 ok: true,
@@ -280,6 +301,8 @@ app: "GENERAL TIPS PRO V1.0",
 apiKeyConfigured: Boolean(API_TOKEN)
 });
 });
+
+/* UPCOMING FIXTURES: 7-DAY DATE RANGE */
 
 app.get("/api/fixtures", async (req, res) => {
 try {
@@ -289,25 +312,42 @@ error: "Football API token is not configured."
 });
 }
 
+const { dateFrom, dateTo } = getFixtureDateRange();
+
 if (
   fixtureCache.data &&
-  Date.now() < fixtureCache.expiresAt
+  Date.now() < fixtureCache.expiresAt &&
+  fixtureCache.dateFrom === dateFrom &&
+  fixtureCache.dateTo === dateTo
 ) {
   return res.json(fixtureCache.data);
 }
 
 if (!pendingFixtures) {
-  pendingFixtures = footballRequest("/matches")
+  pendingFixtures = footballRequest(
+    "/matches?dateFrom=" +
+    dateFrom +
+    "&dateTo=" +
+    dateTo
+  )
     .then(data => {
-      const matches = data.matches || [];
+      const matches = (data.matches || [])
+        .sort((a, b) =>
+          new Date(a.utcDate) - new Date(b.utcDate)
+        );
 
       const result = {
         count: matches.length,
         matches,
+        dateFrom,
+        dateTo,
+        interval: "7 days",
         updatedAt: new Date().toISOString()
       };
 
       fixtureCache.data = result;
+      fixtureCache.dateFrom = dateFrom;
+      fixtureCache.dateTo = dateTo;
       fixtureCache.expiresAt =
         Date.now() + 5 * 60 * 1000;
 
@@ -332,6 +372,8 @@ res.status(error.status || 500).json({
 
 }
 });
+
+/* MATCH ANALYSIS */
 
 app.get("/api/match/:id/analysis", async (req, res) => {
 try {
@@ -458,6 +500,8 @@ res.status(error.status || 500).json({
 
 }
 });
+
+/* MAIN APP */
 
 app.get("*", (req, res) => {
 res.sendFile(path.join(__dirname, "index.html"));
