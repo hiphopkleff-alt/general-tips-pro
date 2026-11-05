@@ -513,6 +513,161 @@ async function openMatch(index){
       </div>`;
   }
   } 
+
+/* TEAM FORM DISPLAY */
+function renderTeamForm(teamForm,homeName,awayName){
+
+  if(!teamForm || typeof teamForm!=='object'){
+    return '<div class="form-empty">Team form data is not available yet.</div>';
+  }
+
+  function getTeamData(side){
+    const keys=side==='home'
+      ?['home','homeTeam','homeForm','teamHome']
+      :['away','awayTeam','awayForm','teamAway'];
+
+    for(const key of keys){
+      if(teamForm[key] && typeof teamForm[key]==='object'){
+        return teamForm[key];
+      }
+    }
+
+    return {};
+  }
+
+  function getValue(data,keys){
+    for(const key of keys){
+      if(data[key]!==undefined && data[key]!==null){
+        return data[key];
+      }
+    }
+    return null;
+  }
+
+  function getRecentForm(data){
+
+    let recent=getValue(data,[
+      'recentForm','form','lastFive','last5',
+      'recent','results','lastMatches'
+    ]);
+
+    if(typeof recent==='string'){
+      return recent.toUpperCase().replace(/[^WDL]/g,'').split('').slice(0,5);
+    }
+
+    if(!Array.isArray(recent))return [];
+
+    return recent.slice(0,5).map(item=>{
+
+      if(typeof item==='string'){
+        const value=item.toUpperCase();
+
+        if(value.includes('WIN')||value==='W')return 'W';
+        if(value.includes('DRAW')||value==='D')return 'D';
+        if(value.includes('LOSS')||value.includes('LOSE')||value==='L')return 'L';
+
+        return '';
+      }
+
+      const result=String(
+        item?.result??item?.outcome??item?.status??''
+      ).toUpperCase();
+
+      if(result==='W'||result.includes('WIN'))return 'W';
+      if(result==='D'||result.includes('DRAW'))return 'D';
+      if(result==='L'||result.includes('LOSS')||result.includes('LOSE'))return 'L';
+
+      return '';
+    }).filter(Boolean);
+  }
+
+  function renderTeamCard(data,name,isAway){
+
+    const played=getValue(data,['played','matchesPlayed','totalMatches']);
+    const wins=getValue(data,['wins','won']);
+    const draws=getValue(data,['draws','draw']);
+    const losses=getValue(data,['losses','lost']);
+    const goalsFor=getValue(data,['goalsFor','goalsScored','scored']);
+    const goalsAgainst=getValue(data,['goalsAgainst','goalsConceded','conceded']);
+
+    const form=getRecentForm(data);
+
+    const stat=(value)=>value===null?'—':escapeHTML(value);
+
+    const chips=form.length
+      ?form.map(result=>`
+        <span class="form-chip ${result==='W'?'win':result==='D'?'draw':'loss'}">
+          ${result}
+        </span>
+      `).join('')
+      :'<span class="form-empty">Recent results unavailable.</span>';
+
+    return `
+      <div class="team-form-card ${isAway?'away-form':''}">
+
+        <div class="form-team-heading">
+          ${escapeHTML(name)}
+        </div>
+
+        <div class="form-record">
+
+          <div class="form-stat">
+            <strong>${stat(played)}</strong>
+            <small>PLAYED</small>
+          </div>
+
+          <div class="form-stat">
+            <strong>${stat(wins)}</strong>
+            <small>WINS</small>
+          </div>
+
+          <div class="form-stat">
+            <strong>${stat(draws)}</strong>
+            <small>DRAWS</small>
+          </div>
+
+          <div class="form-stat">
+            <strong>${stat(losses)}</strong>
+            <small>LOSSES</small>
+          </div>
+
+        </div>
+
+        <div class="form-goals">
+
+          <div class="goal-stat">
+            <small>GOALS FOR</small>
+            <strong>${stat(goalsFor)}</strong>
+          </div>
+
+          <div class="goal-stat">
+            <small>GOALS AGAINST</small>
+            <strong>${stat(goalsAgainst)}</strong>
+          </div>
+
+        </div>
+
+        <div class="recent-label">RECENT FORM</div>
+
+        <div class="form-chips">
+          ${chips}
+        </div>
+
+      </div>
+    `;
+  }
+
+  const homeData=getTeamData('home');
+  const awayData=getTeamData('away');
+
+  return `
+    <div class="team-form-grid">
+      ${renderTeamCard(homeData,homeName,false)}
+      ${renderTeamCard(awayData,awayName,true)}
+    </div>
+  `;
+  }
+  
 /* RECOMMENDATION DISPLAY — preserved from the supplied version. */
 function renderMatchAnalysis(data){
   const match=data.match||currentMatch||{};
