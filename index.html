@@ -475,33 +475,39 @@ container.innerHTML=html;
 updateDashboard();
 }
 
-/* FETCH MATCH ANALYSIS */
-async function fetchAnalysis(match){
-  const id=getMatchId(match);
+/* FETCH MATCH ANALYSIS WITH PRIORITY */
+async function fetchAnalysis(match, priority = 'background') {
 
-  if(id===null||id===undefined){
+  const id = getMatchId(match);
+
+  if (id === null || id === undefined) {
     throw new Error('Match ID is missing.');
   }
 
-  const response=await fetch(
-    '/api/match/'+encodeURIComponent(id)+'/analysis',
+  const response = await fetch(
+    '/api/match/' +
+    encodeURIComponent(id) +
+    '/analysis?priority=' +
+    encodeURIComponent(priority),
     {
-      headers:{'Accept':'application/json'}
+      headers: {
+        'Accept': 'application/json'
+      }
     }
   );
 
-  if(!response.ok){
-    throw new Error('Analysis API error: HTTP '+response.status);
+  if (!response.ok) {
+    throw new Error('Analysis API error: HTTP ' + response.status);
   }
 
-  const data=await response.json();
+  const data = await response.json();
 
-  if(data.error){
+  if (data.error) {
     throw new Error(data.error);
   }
 
   return data;
-  }
+}
   
  /* OPEN MATCH ANALYSIS */
 async function openMatch(index){
@@ -520,7 +526,7 @@ async function openMatch(index){
     '<div class="loading">Loading match analysis...</div>';
 
   try{
-    const data=await fetchAnalysis(match);
+    const data=await fetchAnalysis(match,'high');
 
     if(!data){
       throw new Error('No analysis data returned.');
@@ -906,7 +912,7 @@ async function buildVIP(forceRefresh){
         if(!forceRefresh&&vipCache.has(cacheKey)){
           data=vipCache.get(cacheKey).data;
         }else{
-          data=await fetchAnalysis(match);
+          data=await fetchAnalysis(match,'background');
         }
 
         const recommendations=getRankedMarketRecommendations(data);
