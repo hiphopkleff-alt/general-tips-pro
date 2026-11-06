@@ -105,7 +105,7 @@ main{width:100%;max-width:760px;margin:auto;padding:17px 15px}.page{display:none
 </div></nav>
 <script>
 /* GENERAL TIPS PRO V1.0 */
-let currentFixtures=[],currentMatch=null,currentAnalysis=null,finishedFixtures=[],savedPicks=[];
+let currentFixtures=[],predictionsScrollPosition = 0,currentMatch=null,currentAnalysis=null,finishedFixtures=[],savedPicks=[];
 const FINISHED_FIXTURES_KEY='gtp_finished_fixtures';
 try{savedPicks=JSON.parse(localStorage.getItem('gtp_picks')||'[]');if(!Array.isArray(savedPicks))savedPicks=[];}catch(e){savedPicks=[];}
 try{finishedFixtures=JSON.parse(localStorage.getItem(FINISHED_FIXTURES_KEY)||'[]');if(!Array.isArray(finishedFixtures))finishedFixtures=[];}catch(e){finishedFixtures=[];}
@@ -279,13 +279,58 @@ function getRankedMarketRecommendations(data){
   );
   }
 function showPage(page,button){
-  document.querySelectorAll('.page').forEach(section=>section.classList.remove('active'));
-  const target=$(page);if(target)target.classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(nav=>nav.classList.remove('active'));
-  if(button)button.classList.add('active');else{const nav=document.querySelector(`.nav-btn[data-page="${page}"]`);if(nav)nav.classList.add('active');}
-  window.scrollTo({top:0,behavior:'smooth'});
-  if(page==='history')renderHistory();
-  if(page==='vip'&&!vipBuilt&&!vipBuilding)buildVIP(false);
+
+  const previousPage = document.querySelector('.page.active');
+  const previousPageId = previousPage ? previousPage.id : '';
+
+  // Remember Predictions scroll position before opening Analysis
+  if(page === 'match' && previousPageId === 'predictions'){
+    predictionsScrollPosition = window.scrollY;
+  }
+
+  document.querySelectorAll('.page').forEach(section=>{
+    section.classList.remove('active');
+  });
+
+  const target = $(page);
+
+  if(target) target.classList.add('active');
+
+  document.querySelectorAll('.nav-btn').forEach(nav=>{
+    nav.classList.remove('active');
+  });
+
+  if(button){
+    button.classList.add('active');
+  }else{
+    const nav = document.querySelector(
+      `.nav-btn[data-page="${page}"]`
+    );
+
+    if(nav) nav.classList.add('active');
+  }
+
+  if(page === 'predictions' && previousPageId === 'match'){
+
+    requestAnimationFrame(()=>{
+      window.scrollTo({
+        top: predictionsScrollPosition,
+        behavior: 'instant'
+      });
+    });
+
+  }else{
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
+
+  if(page === 'history') renderHistory();
+
+  if(page === 'vip' && !vipBuilt && !vipBuilding){
+    buildVIP(false);
+  }
 }
 function updateDashboard(){
   $('predictionCount').textContent=currentFixtures.length;
