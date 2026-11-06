@@ -30,73 +30,199 @@ const analysisPending = new Map();
 let pendingFixtures = null;
 
 /* =====================================
-   API REQUEST QUEUE
+   PRIORITY API REQUEST QUEUE
 ===================================== */
 
-let apiQueue = Promise.resolve();
+const API_REQUEST_INTERVAL = 6500;
+
+const apiQueue = [];
+const apiPendingRequests = new Map();
+
+let apiQueueTimer = null;
+let apiRequestRunning = false;
 let lastApiRequestAt = 0;
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function footballRequest(endpoint) {
-  if (!API_TOKEN) {
-    throw new Error(
-      "Football API token is not configured."
-    );
+function priorityWeight(priority) {
+  if (priority === "high") return 0;
+  if (priority === "normal") return 1;
+  return 2;
+}
+
+function promoteFootballRequest(endpoint, priority = "background") {
+  const task = apiPendingRequests.get(endpoint);
+
+  if (!task || task.state !== "queued") {
+    return;
   }
 
-  const makeRequest = async () => {
+  if (
+    priorityWeight(priority) <
+    priorityWeight(task.priority)
+  ) {
+    task.priority = priority;
+  }
+}
 
-    const wait = Math.max(
-      0,
-      6500 - (Date.now() - lastApiRequestAt)
+function processApiQueue() {
+
+  if (
+    apiRequestRunning ||
+    apiQueueTimer ||
+    !apiQueue.length
+  ) {
+    return;
+  }
+
+  const wait = Math.max(
+    0,
+    API_REQUEST_INTERVAL -
+    (Date.now() - lastApiRequestAt)
+  );
+
+  apiQueueTimer = setTimeout(async () => {
+
+    apiQueueTimer = null;
+
+    if (apiRequestRunning || !apiQueue.length) {
+      processApiQueue();
+      return;
+    }
+
+    apiQueue.sort((a, b) =>
+      priorityWeight(a.priority) -
+      priorityWeight(b.priority)
     );
 
-    if (wait > 0) {
-      await delay(wait);
+    const task = apiQueue.shift();
+
+    if (!task) {
+      return;
     }
+
+    task.state = "running";
+    apiRequestRunning = true;
 
     lastApiRequestAt = Date.now();
 
-    console.log("Football API request:", endpoint);
+    try {
 
-    const response = await fetch(
-      API_BASE + endpoint,
-      {
-        headers: {
-          "X-Auth-Token": API_TOKEN
-        }
-      }
-    );
-
-    if (!response.ok) {
-      const body = await response.text();
-
-      const error = new Error(
-        "Football API HTTP " +
-        response.status +
-        ": " +
-        body
+      console.log(
+        "Football API request:",
+        task.endpoint,
+        "| Priority:",
+        task.priority
       );
 
-      error.status = response.status;
+      const response = await fetch(
+        API_BASE + task.endpoint,
+        {
+          headers: {
+            "X-Auth-Token": API_TOKEN
+          }
+        }
+      );
 
-      throw error;
+      if (!response.ok) {
+
+        const body = await response.text();
+
+        const error = new Error(
+          "Football API HTTP " +
+          response.status +
+          ": " +
+          body
+        );
+
+        error.status = response.status;
+
+        throw error;
+      }
+
+      const data = await response.json();
+
+      task.resolve(data);
+
+    } catch (error) {
+
+      task.reject(error);
+
+    } finally {
+
+      if (
+        apiPendingRequests.get(task.endpoint) === task
+      ) {
+        apiPendingRequests.delete(task.endpoint);
+      }
+
+      apiRequestRunning = false;
+
+      processApiQueue();
     }
 
-    return response.json();
+  }, wait);
+}
+
+function footballRequest(
+  endpoint,
+  priority = "background"
+) {
+
+  if (!API_TOKEN) {
+
+    return Promise.reject(
+      new Error(
+        "Football API token is not configured."
+      )
+    );
+
+  }
+
+  const existing =
+    apiPendingRequests.get(endpoint);
+
+  if (existing) {
+
+    promoteFootballRequest(
+      endpoint,
+      priority
+    );
+
+    return existing.promise;
+  }
+
+  let resolveRequest;
+  let rejectRequest;
+
+  const promise = new Promise((resolve, reject) => {
+
+    resolveRequest = resolve;
+    rejectRequest = reject;
+
+  });
+
+  const task = {
+
+    endpoint,
+    priority,
+    state: "queued",
+    promise,
+
+    resolve: resolveRequest,
+    reject: rejectRequest
+
   };
 
-  const request = apiQueue.then(
-    makeRequest,
-    makeRequest
-  );
+  apiPendingRequests.set(endpoint, task);
 
-  apiQueue = request.catch(() => {});
+  apiQueue.push(task);
 
-  return request;
+  processApiQueue();
+
+  return promise;
 }
 
 /* =====================================
@@ -104,9 +230,11 @@ async function footballRequest(endpoint) {
 ===================================== */
 
 function getFixtureDateRange() {
+
   const today = new Date();
 
-  const dateFrom = today.toISOString().slice(0, 10);
+  const dateFrom =
+    today.toISOString().slice(0, 10);
 
   const nextWeek = new Date(today);
 
@@ -114,7 +242,8 @@ function getFixtureDateRange() {
     nextWeek.getUTCDate() + 7
   );
 
-  const dateTo = nextWeek.toISOString().slice(0, 10);
+  const dateTo =
+    nextWeek.toISOString().slice(0, 10);
 
   return {
     dateFrom,
@@ -127,22 +256,38 @@ function getFixtureDateRange() {
 ===================================== */
 
 function cacheGet(cache, key) {
+
   const item = cache.get(key);
 
-  if (!item || Date.now() > item.expiresAt) {
+  if (
+    !item ||
+    Date.now() > item.expiresAt
+  ) {
+
     cache.delete(key);
+
     return null;
   }
 
   return item.data;
 }
 
-function cacheSet(cache, key, data, minutes) {
+function cacheSet(
+  cache,
+  key,
+  data,
+  minutes
+) {
+
   cache.set(key, {
+
     data,
+
     expiresAt:
       Date.now() + minutes * 60 * 1000
+
   });
+
 }
 
 /* =====================================
@@ -150,20 +295,29 @@ function cacheSet(cache, key, data, minutes) {
 ===================================== */
 
 function poisson(lambda, goals) {
-  if (!Number.isFinite(lambda) || lambda <= 0) {
+
+  if (
+    !Number.isFinite(lambda) ||
+    lambda <= 0
+  ) {
     return 0;
   }
 
   let probability = Math.exp(-lambda);
 
   for (let i = 1; i <= goals; i++) {
+
     probability *= lambda / i;
+
   }
 
   return probability;
 }
 
-function calculateProbabilities(homeXG, awayXG) {
+function calculateProbabilities(
+  homeXG,
+  awayXG
+) {
 
   let home = 0;
   let draw = 0;
@@ -186,11 +340,17 @@ function calculateProbabilities(homeXG, awayXG) {
         poisson(awayXG, a);
 
       if (h > a) {
+
         home += probability;
+
       } else if (h === a) {
+
         draw += probability;
+
       } else {
+
         away += probability;
+
       }
 
       if (h + a >= 2) {
@@ -210,6 +370,7 @@ function calculateProbabilities(homeXG, awayXG) {
       }
 
     }
+
   }
 
   return {
@@ -239,7 +400,11 @@ function calculateProbabilities(homeXG, awayXG) {
 function getTeamStats(matches, teamId) {
 
   const finished = (matches || [])
-    .filter(match => match.status === "FINISHED")
+
+    .filter(match =>
+      match.status === "FINISHED"
+    )
+
     .slice(0, 10);
 
   let played = 0;
@@ -257,8 +422,11 @@ function getTeamStats(matches, teamId) {
     const homeId = match.homeTeam?.id;
     const awayId = match.awayTeam?.id;
 
-    const homeGoals = match.score?.fullTime?.home;
-    const awayGoals = match.score?.fullTime?.away;
+    const homeGoals =
+      match.score?.fullTime?.home;
+
+    const awayGoals =
+      match.score?.fullTime?.away;
 
     if (
       homeGoals === null ||
@@ -283,7 +451,9 @@ function getTeamStats(matches, teamId) {
       conceded = homeGoals;
 
     } else {
+
       continue;
+
     }
 
     played++;
@@ -332,15 +502,21 @@ function getTeamStats(matches, teamId) {
 }
 
 /* =====================================
-   TEAM HISTORY WITH DUPLICATE
-   REQUEST PROTECTION
+   TEAM HISTORY
+   WITH DUPLICATE REQUEST PROTECTION
 ===================================== */
 
-async function getTeamHistory(teamId) {
+async function getTeamHistory(
+  teamId,
+  priority = "background"
+) {
 
   const key = String(teamId);
 
-  const cached = cacheGet(teamCache, key);
+  const cached = cacheGet(
+    teamCache,
+    key
+  );
 
   if (cached) {
     return cached;
@@ -351,10 +527,15 @@ async function getTeamHistory(teamId) {
   }
 
   const request = footballRequest(
+
     "/teams/" +
     encodeURIComponent(key) +
-    "/matches?status=FINISHED&limit=10"
+    "/matches?status=FINISHED&limit=10",
+
+    priority
+
   )
+
     .then(data => {
 
       const result = data.matches || [];
@@ -369,6 +550,7 @@ async function getTeamHistory(teamId) {
       return result;
 
     })
+
     .finally(() => {
 
       teamPending.delete(key);
@@ -481,10 +663,17 @@ function makeRecommendations(probabilities) {
    BUILD MATCH ANALYSIS
 ===================================== */
 
-async function buildMatchAnalysis(matchId) {
+async function buildMatchAnalysis(
+  matchId,
+  priority = "background"
+) {
 
   const match = await footballRequest(
-    "/matches/" + matchId
+
+    "/matches/" + matchId,
+
+    priority
+
   );
 
   if (
@@ -510,8 +699,9 @@ async function buildMatchAnalysis(matchId) {
     awayMatches
   ] = await Promise.all([
 
-    getTeamHistory(homeId),
-    getTeamHistory(awayId)
+    getTeamHistory(homeId, priority),
+
+    getTeamHistory(awayId, priority)
 
   ]);
 
@@ -555,19 +745,31 @@ async function buildMatchAnalysis(matchId) {
     awayStats.averageGoalsAgainst;
 
   const homeXG = Math.max(
+
     0.2,
+
     Math.min(
+
       4.0,
+
       (homeAttack + awayDefence) / 2
+
     )
+
   );
 
   const awayXG = Math.max(
+
     0.2,
+
     Math.min(
+
       4.0,
+
       (awayAttack + homeDefence) / 2
+
     )
+
   );
 
   const probabilities =
@@ -579,15 +781,18 @@ async function buildMatchAnalysis(matchId) {
   const recommendations =
     makeRecommendations(probabilities);
 
-  const result = {
+  return {
 
     match: {
 
       id: match.id,
+
       date: match.utcDate,
+
       status: match.status,
 
       homeTeam: match.homeTeam.name,
+
       awayTeam: match.awayTeam.name,
 
       competition:
@@ -615,6 +820,7 @@ async function buildMatchAnalysis(matchId) {
     teamForm: {
 
       home: homeStats,
+
       away: awayStats
 
     },
@@ -625,6 +831,7 @@ async function buildMatchAnalysis(matchId) {
         ([key, value]) => [
 
           key,
+
           Number(value.toFixed(1))
 
         ]
@@ -650,7 +857,6 @@ async function buildMatchAnalysis(matchId) {
 
   };
 
-  return result;
 }
 
 /* =====================================
@@ -665,7 +871,11 @@ app.get("/api/health", (req, res) => {
 
     app: "GENERAL TIPS PRO V1.0",
 
-    apiKeyConfigured: Boolean(API_TOKEN)
+    apiKeyConfigured: Boolean(API_TOKEN),
+
+    queuedRequests: apiQueue.length,
+
+    runningRequest: apiRequestRunning
 
   });
 
@@ -719,7 +929,9 @@ app.get("/api/fixtures", async (req, res) => {
         "/matches?dateFrom=" +
         dateFrom +
         "&dateTo=" +
-        dateTo
+        dateTo,
+
+        "normal"
 
       )
 
@@ -741,6 +953,7 @@ app.get("/api/fixtures", async (req, res) => {
             matches,
 
             dateFrom,
+
             dateTo,
 
             interval: "7 days",
@@ -752,6 +965,7 @@ app.get("/api/fixtures", async (req, res) => {
           fixtureCache.data = result;
 
           fixtureCache.dateFrom = dateFrom;
+
           fixtureCache.dateTo = dateTo;
 
           fixtureCache.expiresAt =
@@ -795,7 +1009,8 @@ app.get("/api/fixtures", async (req, res) => {
 
 /* =====================================
    MATCH ANALYSIS
-   WITH DUPLICATE REQUEST PROTECTION
+   WITH PRIORITY AND DUPLICATE
+   REQUEST PROTECTION
 ===================================== */
 
 app.get(
@@ -816,8 +1031,31 @@ app.get(
 
       }
 
-      const cached =
-        cacheGet(analysisCache, matchId);
+      /*
+        HIGH PRIORITY:
+        User actively opened a match.
+
+        NORMAL PRIORITY:
+        Predictions background analysis.
+
+        BACKGROUND PRIORITY:
+        VIP processing.
+      */
+
+      const requestedPriority =
+        req.query.priority;
+
+      const priority =
+        requestedPriority === "high"
+          ? "high"
+          : requestedPriority === "normal"
+            ? "normal"
+            : "background";
+
+      const cached = cacheGet(
+        analysisCache,
+        matchId
+      );
 
       if (cached) {
         return res.json(cached);
@@ -828,7 +1066,10 @@ app.get(
 
       if (!request) {
 
-        request = buildMatchAnalysis(matchId)
+        request = buildMatchAnalysis(
+          matchId,
+          priority
+        )
 
           .then(result => {
 
@@ -863,9 +1104,13 @@ app.get(
     } catch (error) {
 
       console.error(
+
         "Analysis error:",
+
         matchId,
+
         error.message
+
       );
 
       res.status(error.status || 500).json({
@@ -886,6 +1131,7 @@ app.get(
     }
 
   }
+
 );
 
 /* =====================================
@@ -907,8 +1153,10 @@ app.get("*", (req, res) => {
 app.listen(PORT, () => {
 
   console.log(
+
     "GENERAL TIPS PRO V1.0 running on port " +
     PORT
+
   );
 
 });
