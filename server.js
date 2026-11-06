@@ -23,6 +23,7 @@ const fixtureCache = {
 
 const analysisCache = new Map();
 const teamCache = new Map();
+const matchCache = new Map();
 
 const teamPending = new Map();
 const analysisPending = new Map();
@@ -41,15 +42,18 @@ const apiPendingRequests = new Map();
 let apiQueueTimer = null;
 let apiRequestRunning = false;
 let lastApiRequestAt = 0;
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+let queueSequence = 0;
 
 function priorityWeight(priority) {
   if (priority === "high") return 0;
   if (priority === "normal") return 1;
   return 2;
+}
+
+function normalizePriority(priority) {
+  if (priority === "high") return "high";
+  if (priority === "normal") return "normal";
+  return "background";
 }
 
 function promoteFootballRequest(endpoint, priority = "background") {
@@ -64,8 +68,26 @@ function promoteFootballRequest(endpoint, priority = "background") {
     priorityWeight(task.priority)
   ) {
     task.priority = priority;
+
+    console.log(
+      "Request priority upgraded:",
+      endpoint,
+      "=>",
+      priority
+    );
+
+    if (apiQueueTimer) {
+      clearTimeout(apiQueueTimer);
+      apiQueueTimer = null;
+    }
+
+    processApiQueue();
   }
 }
+
+/* =====================================
+   QUEUE PROCESSOR
+===================================== */
 
 function processApiQueue() {
 
@@ -92,10 +114,19 @@ function processApiQueue() {
       return;
     }
 
-    apiQueue.sort((a, b) =>
-      priorityWeight(a.priority) -
-      priorityWeight(b.priority)
-    );
+    apiQueue.sort((a, b) => {
+
+      const priorityDifference =
+        priorityWeight(a.priority) -
+        priorityWeight(b.priority);
+
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      return a.sequence - b.sequence;
+
+    });
 
     const task = apiQueue.shift();
 
@@ -114,7 +145,9 @@ function processApiQueue() {
         "Football API request:",
         task.endpoint,
         "| Priority:",
-        task.priority
+        task.priority,
+        "| Queue:",
+        apiQueue.length
       );
 
       const response = await fetch(
@@ -164,12 +197,20 @@ function processApiQueue() {
     }
 
   }, wait);
+
 }
+
+/* =====================================
+   API REQUEST
+   WITH DUPLICATE PROTECTION
+===================================== */
 
 function footballRequest(
   endpoint,
   priority = "background"
 ) {
+
+  priority = normalizePriority(priority);
 
   if (!API_TOKEN) {
 
@@ -209,6 +250,7 @@ function footballRequest(
     endpoint,
     priority,
     state: "queued",
+    sequence: queueSequence++,
     promise,
 
     resolve: resolveRequest,
@@ -249,6 +291,7 @@ function getFixtureDateRange() {
     dateFrom,
     dateTo
   };
+
 }
 
 /* =====================================
@@ -270,6 +313,7 @@ function cacheGet(cache, key) {
   }
 
   return item.data;
+
 }
 
 function cacheSet(
@@ -287,6 +331,61 @@ function cacheSet(
       Date.now() + minutes * 60 * 1000
 
   });
+
+}
+
+/* =====================================
+   MATCH INFORMATION CACHE
+===================================== */
+
+function saveFixtureMatches(matches) {
+
+  for (const match of matches || []) {
+
+    if (!match || !match.id) {
+      continue;
+    }
+
+    cacheSet(
+      matchCache,
+      String(match.id),
+      match,
+      60
+    );
+
+  }
+
+}
+
+async function getMatchInformation(
+  matchId,
+  priorityState
+) {
+
+  const key = String(matchId);
+
+  const cached = cacheGet(
+    matchCache,
+    key
+  );
+
+  if (cached) {
+    return cached;
+  }
+
+  const match = await footballRequest(
+    "/matches/" + encodeURIComponent(key),
+    priorityState.priority
+  );
+
+  cacheSet(
+    matchCache,
+    key,
+    match,
+    60
+  );
+
+  return match;
 
 }
 
@@ -312,6 +411,7 @@ function poisson(lambda, goals) {
   }
 
   return probability;
+
 }
 
 function calculateProbabilities(
@@ -391,6 +491,7 @@ function calculateProbabilities(
     bttsNo: (1 - bttsYes) * 100
 
   };
+
 }
 
 /* =====================================
@@ -499,16 +600,17 @@ function getTeamStats(matches, teamId) {
     form
 
   };
+
 }
 
 /* =====================================
    TEAM HISTORY
-   WITH DUPLICATE REQUEST PROTECTION
+   WITH PRIORITY PROMOTION
 ===================================== */
 
 async function getTeamHistory(
   teamId,
-  priority = "background"
+  priorityState
 ) {
 
   const key = String(teamId);
@@ -522,18 +624,27 @@ async function getTeamHistory(
     return cached;
   }
 
-  if (teamPending.has(key)) {
-    return teamPending.get(key);
+  const existing = teamPending.get(key);
+
+  if (existing) {
+
+    promoteFootballRequest(
+      existing.endpoint,
+      priorityState.priority
+    );
+
+    return existing.promise;
+
   }
 
-  const request = footballRequest(
-
+  const endpoint =
     "/teams/" +
     encodeURIComponent(key) +
-    "/matches?status=FINISHED&limit=10",
+    "/matches?status=FINISHED&limit=10";
 
-    priority
-
+  const request = footballRequest(
+    endpoint,
+    priorityState.priority
   )
 
     .then(data => {
@@ -557,9 +668,13 @@ async function getTeamHistory(
 
     });
 
-  teamPending.set(key, request);
+  teamPending.set(key, {
+    endpoint,
+    promise: request
+  });
 
   return request;
+
 }
 
 /* =====================================
@@ -665,15 +780,12 @@ function makeRecommendations(probabilities) {
 
 async function buildMatchAnalysis(
   matchId,
-  priority = "background"
+  priorityState
 ) {
 
-  const match = await footballRequest(
-
-    "/matches/" + matchId,
-
-    priority
-
+  const match = await getMatchInformation(
+    matchId,
+    priorityState
   );
 
   if (
@@ -699,9 +811,9 @@ async function buildMatchAnalysis(
     awayMatches
   ] = await Promise.all([
 
-    getTeamHistory(homeId, priority),
+    getTeamHistory(homeId, priorityState),
 
-    getTeamHistory(awayId, priority)
+    getTeamHistory(awayId, priorityState)
 
   ]);
 
@@ -875,7 +987,17 @@ app.get("/api/health", (req, res) => {
 
     queuedRequests: apiQueue.length,
 
-    runningRequest: apiRequestRunning
+    runningRequest: apiRequestRunning,
+
+    cachedFixtures: Boolean(fixtureCache.data),
+
+    cachedAnalyses: analysisCache.size,
+
+    cachedTeams: teamCache.size,
+
+    cachedMatches: matchCache.size,
+
+    pendingAnalyses: analysisPending.size
 
   });
 
@@ -883,7 +1005,6 @@ app.get("/api/health", (req, res) => {
 
 /* =====================================
    UPCOMING FIXTURES
-   TODAY THROUGH NEXT 7 DAYS
 ===================================== */
 
 app.get("/api/fixtures", async (req, res) => {
@@ -924,7 +1045,7 @@ app.get("/api/fixtures", async (req, res) => {
 
     if (!pendingFixtures) {
 
-      pendingFixtures = footballRequest(
+      const fixtureRequest = footballRequest(
 
         "/matches?dateFrom=" +
         dateFrom +
@@ -945,6 +1066,11 @@ app.get("/api/fixtures", async (req, res) => {
               new Date(b.utcDate)
 
             );
+
+          // Save fixture information so analysis
+          // does not need another match-details request.
+
+          saveFixtureMatches(matches);
 
           const result = {
 
@@ -975,6 +1101,8 @@ app.get("/api/fixtures", async (req, res) => {
 
         });
 
+      pendingFixtures = fixtureRequest;
+
     }
 
     const result = await pendingFixtures;
@@ -999,9 +1127,7 @@ app.get("/api/fixtures", async (req, res) => {
 
   } finally {
 
-    if (pendingFixtures) {
-      pendingFixtures = null;
-    }
+    pendingFixtures = null;
 
   }
 
@@ -1009,8 +1135,7 @@ app.get("/api/fixtures", async (req, res) => {
 
 /* =====================================
    MATCH ANALYSIS
-   WITH PRIORITY AND DUPLICATE
-   REQUEST PROTECTION
+   WITH PRIORITY PROMOTION
 ===================================== */
 
 app.get(
@@ -1031,26 +1156,8 @@ app.get(
 
       }
 
-      /*
-        HIGH PRIORITY:
-        User actively opened a match.
-
-        NORMAL PRIORITY:
-        Predictions background analysis.
-
-        BACKGROUND PRIORITY:
-        VIP processing.
-      */
-
-      const requestedPriority =
-        req.query.priority;
-
       const priority =
-        requestedPriority === "high"
-          ? "high"
-          : requestedPriority === "normal"
-            ? "normal"
-            : "background";
+        normalizePriority(req.query.priority);
 
       const cached = cacheGet(
         analysisCache,
@@ -1061,14 +1168,68 @@ app.get(
         return res.json(cached);
       }
 
-      let request =
+      let pending =
         analysisPending.get(matchId);
 
-      if (!request) {
+      if (pending) {
 
-        request = buildMatchAnalysis(
-          matchId,
+        // Upgrade the analysis priority.
+
+        if (
+          priorityWeight(priority) <
+          priorityWeight(pending.priorityState.priority)
+        ) {
+
+          pending.priorityState.priority = priority;
+
+          console.log(
+            "Match analysis priority upgraded:",
+            matchId,
+            "=>",
+            priority
+          );
+
+        }
+
+        // Promote any external requests already waiting.
+
+        promoteFootballRequest(
+          "/matches/" + matchId,
           priority
+        );
+
+        const cachedMatch = cacheGet(
+          matchCache,
+          matchId
+        );
+
+        if (cachedMatch?.homeTeam?.id) {
+
+          promoteFootballRequest(
+            "/teams/" +
+            cachedMatch.homeTeam.id +
+            "/matches?status=FINISHED&limit=10",
+            priority
+          );
+
+          promoteFootballRequest(
+            "/teams/" +
+            cachedMatch.awayTeam.id +
+            "/matches?status=FINISHED&limit=10",
+            priority
+          );
+
+        }
+
+      } else {
+
+        const priorityState = {
+          priority
+        };
+
+        const promise = buildMatchAnalysis(
+          matchId,
+          priorityState
         )
 
           .then(result => {
@@ -1090,14 +1251,19 @@ app.get(
 
           });
 
+        pending = {
+          promise,
+          priorityState
+        };
+
         analysisPending.set(
           matchId,
-          request
+          pending
         );
 
       }
 
-      const result = await request;
+      const result = await pending.promise;
 
       res.json(result);
 
