@@ -878,7 +878,8 @@ async function buildVIP(forceRefresh){
   if(vipBuilding)return;
 
   if(!currentFixtures.length){
-    $('vipList').innerHTML='<div class="empty">No live or upcoming fixtures available for VIP analysis.</div>';
+    $('vipList').innerHTML=
+      '<div class="empty">No live or upcoming fixtures available for VIP analysis.</div>';
     $('vipSummary').textContent='No active fixtures to analyse.';
     vipEntries=[];
     vipBuilt=true;
@@ -887,76 +888,66 @@ async function buildVIP(forceRefresh){
   }
 
   vipBuilding=true;
-  $('vipSummary').textContent='Analysing available matches...';
+  $('vipSummary').textContent='Analysing matches one at a time...';
 
   const matches=currentFixtures.slice();
-  let completed=0;
   const results=[];
-  let nextIndex=0;
 
-  async function worker(){
-    while(nextIndex<matches.length){
-      const index=nextIndex++;
-      const match=matches[index];
-      const id=getMatchId(match);
+  try{
+    for(let i=0;i<matches.length;i++){
 
-      if(id===null||id===undefined){
-        completed++;
+      // Give priority to analysis opened by the user.
+      if(document.querySelector('.page.active')?.id==='match'){
+        await new Promise(resolve=>setTimeout(resolve,1500));
+        i--;
         continue;
       }
 
+      const match=matches[i];
+      const id=getMatchId(match);
+
+      if(id===null||id===undefined)continue;
+
       try{
-        const cacheKey=String(id);
+        const key=String(id);
         let data=null;
 
-        if(!forceRefresh&&vipCache.has(cacheKey)){
-          data=vipCache.get(cacheKey).data;
+        if(!forceRefresh&&vipCache.has(key)){
+          data=vipCache.get(key).data;
         }else{
           data=await fetchAnalysis(match,'background');
         }
 
         const recommendations=getRankedMarketRecommendations(data);
+        const best=recommendations[0]||null;
 
-        if(recommendations.length){
-          const best=recommendations[0];
+        vipCache.set(key,{
+          data,
+          recommendation:best,
+          probability:best?best.probability:null
+        });
 
-          vipCache.set(cacheKey,{
-            data,
-            recommendation:best,
-            probability:best.probability
-          });
-
+        if(best){
           results.push({
             match,
             matchId:id,
             recommendation:best,
             probability:best.probability
           });
-        }else{
-          vipCache.set(cacheKey,{
-            data,
-            recommendation:null,
-            probability:null
-          });
         }
+
+        renderFixtures(currentFixtures);
 
       }catch(error){
         console.warn('VIP analysis failed:',id,error);
       }
 
-      completed++;
       $('vipSummary').textContent=
-        `Analysed ${completed} of ${matches.length} matches...`;
-    }
-  }
+        `Analysed ${i+1} of ${matches.length} matches...`;
 
-  try{
-    await Promise.all(
-      Array.from(
-        {length:Math.min(3,matches.length)},
-        ()=>worker()
-      )
-    );
+      // Avoid flooding the backend request queue.
+      await new Promise(resolve=>setTimeout(resolve,1200));
+    }
 
     results.sort((a,b)=>b.probability-a.probability);
     vipEntries=results;
