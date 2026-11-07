@@ -359,7 +359,8 @@ async function loadFixtures(){
     $('vipSummary').textContent='Preparing analysis for available matches...';
     $('vipList').innerHTML='<div class="loading">Building VIP recommendations...</div>';
     updateDashboard();renderHistory();
-    buildVIP(false);
+    $('vipSummary').textContent='VIP analysis will start when you open the VIP page.';
+$('vipList').innerHTML='<div class="empty">Open VIP Predictions to generate recommendations.</div>';
   }catch(error){
     $('fixtureList').innerHTML=`<div class="panel error">Unable to load fixtures.<br>${escapeHTML(error.message)}</div>`;
     $('fixtureMessage').innerHTML='<div class="notice">Check that your backend is running and /api/fixtures is available. Previously archived completed matches remain in History on this device.</div>';
