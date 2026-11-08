@@ -66,14 +66,87 @@ function getAwayLogo(m){const t=m?.awayTeam??m?.teams?.away??m?.away;return (t&&
 function getMatchId(m){return m?.id??m?.matchId??m?.fixtureId??null}
 function getMatchDate(m){return m?.utcDate??m?.date??m?.kickoff??m?.matchDate??null}
 function formatDate(v){if(!v)return 'Date unavailable';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
-function getStatus(m){const raw=String(m?.status??m?.matchStatus??m?.fixture?.status?.short??m?.fixture?.status?.long??'UNKNOWN').toUpperCase().trim().replace(/[\s-]+/g,'_');if(['LIVE','IN_PLAY','PAUSED','1H','2H','HT','ET','P','FIRST_HALF','SECOND_HALF','EXTRA_TIME'].includes(raw))return 'LIVE';if(['FINISHED','FT','AET','PEN','ENDED','COMPLETE','COMPLETED','FULL_TIME','FULLTIME','AFTER_EXTRA_TIME','AFTER_PENALTIES','FINISHED_AFTER_EXTRA_TIME','FINISHED_AFTER_PENALTIES','FT_PEN','MATCH_FINISHED'].includes(raw))return 'ENDED';if(['SCHEDULED','TIMED','NOT_STARTED','UPCOMING','NS','TBD'].includes(raw))return 'UPCOMING';return raw.replace(/_/g,' ')}
-function getScore(m){const s=m?.score??m?.goals??m?.fixture?.score;if(!s)return '';if(typeof s==='string')return s;const f=s.fullTime??s.fulltime??s;const h=f.home??f.homeTeam??s.home??s.homeTeam,a=f.away??f.awayTeam??s.away??s.awayTeam;return h==null||a==null?'':`${h} - ${a}`}
+function getStatus(m){
+  const raw=String(
+    m?.status??
+    m?.matchStatus??
+    m?.fixture?.status?.short??
+    m?.fixture?.status?.long??
+    'UNKNOWN'
+  ).toUpperCase().trim().replace(/[\s-]+/g,'_');
+
+  if([
+    'LIVE','IN_PLAY','PAUSED','1H','2H','HT','ET','P',
+    'FIRST_HALF','SECOND_HALF','EXTRA_TIME','BREAK'
+  ].includes(raw)) return 'LIVE';
+
+  if([
+    'FINISHED','FT','AET','PEN','ENDED','COMPLETE',
+    'COMPLETED','FULL_TIME','FULLTIME','AFTER_EXTRA_TIME',
+    'AFTER_PENALTIES','FINISHED_AFTER_EXTRA_TIME',
+    'FINISHED_AFTER_PENALTIES','FT_PEN','MATCH_FINISHED'
+  ].includes(raw)) return 'ENDED';
+
+  if([
+    'POSTPONED','PST','CANCELLED','CANCELED',
+    'ABANDONED','SUSPENDED','AWARDED','DELAYED'
+  ].includes(raw)) return raw;
+
+  if([
+    'SCHEDULED','TIMED','NOT_STARTED','UPCOMING','NS','TBD'
+  ].includes(raw)) return 'UPCOMING';
+
+  return raw.replace(/_/g,' ');
+}
+
+function isUnavailableFixture(m){
+  return [
+    'POSTPONED',
+    'PST',
+    'CANCELLED',
+    'CANCELED',
+    'ABANDONED',
+    'SUSPENDED',
+    'AWARDED',
+    'DELAYED'
+  ].includes(getStatus(m).replace(/ /g,'_'));
+}
+  function getScore(m){const s=m?.score??m?.goals??m?.fixture?.score;if(!s)return '';if(typeof s==='string')return s;const f=s.fullTime??s.fulltime??s;const h=f.home??f.homeTeam??s.home??s.homeTeam,a=f.away??f.awayTeam??s.away??s.awayTeam;return h==null||a==null?'':`${h} - ${a}`}
 function fixtureKey(m){const id=getMatchId(m);return id!=null&&String(id)!==''?'id:'+id:[getHome(m),getAway(m),getMatchDate(m)||''].join('|').toLowerCase()}
 function saveFinishedFixtures(){try{localStorage.setItem(FINISHED_FIXTURES_KEY,JSON.stringify(finishedFixtures))}catch(e){console.warn(e)}}
 function saveVIPResults(){try{localStorage.setItem(VIP_STORAGE_KEY,JSON.stringify(vipEntries))}catch(e){console.warn('VIP storage error',e)}}
 function archiveFinishedFixture(m){const key=fixtureKey(m),i=finishedFixtures.findIndex(x=>fixtureKey(x)===key),archived={...m,status:'ENDED',archivedAt:m.archivedAt||new Date().toISOString()};if(i>=0)finishedFixtures[i]={...finishedFixtures[i],...archived};else finishedFixtures.unshift(archived)}
-function archiveAndFilterFixtures(list){const active=[];(Array.isArray(list)?list:[]).forEach(m=>{if(getStatus(m)==='ENDED'){archiveFinishedFixture(m);return}const key=fixtureKey(m);if(finishedFixtures.some(x=>fixtureKey(x)===key))archiveFinishedFixture(m);else active.push(m)});saveFinishedFixtures();return active}
-function probabilityValue(r){let n=safeNumber(r?.probability??r?.confidence??r?.percentage);if(n===null)return null;if(n>0&&n<=1)n*=100;return Math.max(0,Math.min(100,n))}
+function archiveAndFilterFixtures(list){
+  const active=[];
+
+  (Array.isArray(list)?list:[]).forEach(m=>{
+    const status=getStatus(m);
+    const key=fixtureKey(m);
+
+    // Completed matches belong in History.
+    if(status==='ENDED'){
+      archiveFinishedFixture(m);
+      return;
+    }
+
+    // Postponed and unavailable matches must not appear
+    // in Predictions or VIP.
+    if(isUnavailableFixture(m)){
+      return;
+    }
+
+    // Do not bring previously completed matches back.
+    if(finishedFixtures.some(x=>fixtureKey(x)===key)){
+      return;
+    }
+
+    active.push(m);
+  });
+
+  saveFinishedFixtures();
+  return active;
+}
+  function probabilityValue(r){let n=safeNumber(r?.probability??r?.confidence??r?.percentage);if(n===null)return null;if(n>0&&n<=1)n*=100;return Math.max(0,Math.min(100,n))}
 function confidenceLevel(p){return p>=80?'level-high':p>=65?'level-medium':'level-low'}
 function confidenceBars(p){return `<div class="confidence-bars ${confidenceLevel(p)}"><span></span><span></span><span></span><span></span><span></span></div>`}
 function saveLocalPicks(){try{localStorage.setItem('gtp_picks',JSON.stringify(savedPicks))}catch(e){alert('Unable to save. Device storage may be full.')}}
@@ -100,13 +173,383 @@ function getRankedMarketRecommendations(data){const out=new Map(),prob=data?.pro
 function showPage(page,button){const prev=document.querySelector('.page.active')?.id||'';if(page==='match'&&prev==='predictions')predictionsScrollPosition=window.scrollY;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(page)?.classList.add('active');document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));(button||document.querySelector(`.nav-btn[data-page="${page}"]`))?.classList.add('active');if(page==='predictions'&&prev==='match')requestAnimationFrame(()=>window.scrollTo({top:predictionsScrollPosition,behavior:'instant'}));else window.scrollTo({top:0,behavior:'smooth'});if(page==='history')renderHistory();if(page==='vip'&&!vipBuilt&&!vipBuilding)buildVIP(false)}
 function updateDashboard(){$('predictionCount').textContent=currentFixtures.length;$('vipCount').textContent=vipEntries.length;$('recordedCount').textContent=savedPicks.length;const graded=savedPicks.filter(p=>p.result==='WON'||p.result==='LOST'),wins=graded.filter(p=>p.result==='WON').length,acc=graded.length?wins/graded.length*100:0;$('accuracy').textContent=graded.length?acc.toFixed(1)+'%':'0%';$('historyTotal').textContent=savedPicks.length;$('historyAccuracy').textContent=graded.length?acc.toFixed(1)+'%':'0%'}
 function competitionName(m){return m?.competition?.name||m?.league?.name||m?.competition||m?.league||'FOOTBALL'}
-function renderMatchCard(match,index){const status=getStatus(match),logoH=getHomeLogo(match),logoA=getAwayLogo(match),cache=vipCache.get(String(getMatchId(match))),rec=cache?.recommendation,p=rec?.probability,date=formatDate(getMatchDate(match));return `<article class="match-card"><div class="match-top"><span class="match-date">${escapeHTML(date)}</span><span class="status ${status==='LIVE'?'live':''}">${escapeHTML(status)}</span></div><div class="teams"><div class="team-side">${logoH?`<img class="team-logo" src="${escapeHTML(logoH)}" alt="" onerror="this.style.display='none'">`:''}<div class="team-name">${escapeHTML(getHome(match))}</div></div><div class="vs">${getScore(match)?`<div class="score">${escapeHTML(getScore(match))}</div>`:'VS'}</div><div class="team-side away"><div class="team-name">${escapeHTML(getAway(match))}</div>${logoA?`<img class="team-logo" src="${escapeHTML(logoA)}" alt="" onerror="this.style.display='none'">`:''}</div></div>${rec?`<div class="prediction-market">${escapeHTML(rec.market)}</div><div class="confidence-line">${confidenceBars(p)}<span>Model confidence:</span><strong>${p.toFixed(1)}%</strong></div>`:`<div class="prediction-market">ANALYSIS AVAILABLE ON OPEN</div>`}<button class="analysis-button" onclick="openMatch(${index})">VIEW MATCH ANALYSIS →</button></article>`}
-function renderFixtures(matches){const box=$('fixtureList');if(!box)return;const list=(Array.isArray(matches)?matches:[]).filter(m=>getStatus(m)!=='ENDED');if(!list.length){box.innerHTML='<div class="empty">No live or upcoming fixtures are currently available.</div>';return}const sorted=list.slice().sort((a,b)=>{const da=new Date(getMatchDate(a)||0).getTime(),db=new Date(getMatchDate(b)||0).getTime();return da-db});let lastDay='';box.innerHTML=sorted.map(m=>{const d=new Date(getMatchDate(m)||0),day=Number.isNaN(d.getTime())?'DATE TBC':d.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}),idx=currentFixtures.indexOf(m);let separator='';if(day!==lastDay){lastDay=day;separator=`<div class="day-separator">📅 ${escapeHTML(day)}<span>FIXTURES</span></div>`}return separator+renderMatchCard(m,idx)}).join('')}
+function renderMatchCard(match,index){
+  const status=getStatus(match);
+  const logoH=getHomeLogo(match);
+  const logoA=getAwayLogo(match);
+
+  const cache=vipCache.get(String(getMatchId(match)));
+  const rec=cache?.recommendation;
+  const p=rec?.probability;
+
+  const date=formatDate(getMatchDate(match));
+
+  let predictionHTML='';
+
+  if(rec){
+
+    predictionHTML=`
+      <div class="prediction-market">
+        ${escapeHTML(rec.market)}
+      </div>
+
+      <div class="confidence-line">
+        ${confidenceBars(p)}
+        <span>Model confidence:</span>
+        <strong>${p.toFixed(1)}%</strong>
+      </div>
+
+      ${
+        status==='LIVE'
+        ?`
+          <div class="confidence-line">
+            <strong style="color:var(--yellow)">
+              PRE-MATCH MODEL ESTIMATE
+            </strong>
+          </div>
+          <div class="confidence-line">
+            This probability has not been recalculated
+            using the current live score.
+          </div>
+        `
+        :''
+      }
+    `;
+
+  }else{
+
+    predictionHTML=`
+      <div class="prediction-market">
+        ANALYSIS AVAILABLE ON OPEN
+      </div>
+    `;
+
+  }
+
+  return `
+    <article class="match-card">
+
+      <div class="match-top">
+        <span class="match-date">
+          ${escapeHTML(date)}
+        </span>
+
+        <span class="status ${status==='LIVE'?'live':''}">
+          ${escapeHTML(status)}
+        </span>
+      </div>
+
+      <div class="teams">
+
+        <div class="team-side">
+          ${
+            logoH
+            ?`
+              <img
+                class="team-logo"
+                src="${escapeHTML(logoH)}"
+                alt=""
+                onerror="this.style.display='none'"
+              >
+            `
+            :''
+          }
+
+          <div class="team-name">
+            ${escapeHTML(getHome(match))}
+          </div>
+        </div>
+
+        <div class="vs">
+          ${
+            getScore(match)
+            ?`
+              <div class="score">
+                ${escapeHTML(getScore(match))}
+              </div>
+            `
+            :'VS'
+          }
+        </div>
+
+        <div class="team-side away">
+
+          <div class="team-name">
+            ${escapeHTML(getAway(match))}
+          </div>
+
+          ${
+            logoA
+            ?`
+              <img
+                class="team-logo"
+                src="${escapeHTML(logoA)}"
+                alt=""
+                onerror="this.style.display='none'"
+              >
+            `
+            :''
+          }
+
+        </div>
+
+      </div>
+
+      ${predictionHTML}
+
+      <button
+        class="analysis-button"
+        onclick="openMatch(${index})"
+      >
+        VIEW MATCH ANALYSIS →
+      </button>
+
+    </article>
+  `;
+}
+  function renderFixtures(matches){
+
+  const box=$('fixtureList');
+
+  if(!box)return;
+
+  const list=(Array.isArray(matches)?matches:[])
+    .filter(m=>
+      getStatus(m)!=='ENDED' &&
+      !isUnavailableFixture(m)
+    );
+
+  if(!list.length){
+
+    box.innerHTML=`
+      <div class="empty">
+        No live or upcoming fixtures are currently available.
+      </div>
+    `;
+
+    return;
+  }
+
+  const sorted=list.slice().sort((a,b)=>{
+
+    const da=new Date(getMatchDate(a)||0).getTime();
+    const db=new Date(getMatchDate(b)||0).getTime();
+
+    return da-db;
+
+  });
+
+  let lastDay='';
+
+  box.innerHTML=sorted.map(m=>{
+
+    const d=new Date(getMatchDate(m)||0);
+
+    const day=Number.isNaN(d.getTime())
+      ?'DATE TBC'
+      :d.toLocaleDateString('en-GB',{
+          weekday:'long',
+          day:'2-digit',
+          month:'long',
+          year:'numeric'
+        });
+
+    const idx=currentFixtures.indexOf(m);
+
+    let separator='';
+
+    if(day!==lastDay){
+
+      lastDay=day;
+
+      separator=`
+        <div class="day-separator">
+          📅 ${escapeHTML(day)}
+          <span>FIXTURES</span>
+        </div>
+      `;
+    }
+
+    return separator+renderMatchCard(m,idx);
+
+  }).join('');
+}
   async function loadFixtures(){const btn=$('refreshBtn');btn.disabled=true;btn.textContent='LOADING...';$('fixtureMessage').innerHTML='';$('fixtureList').innerHTML='<div class="loading">Connecting to football data...</div>';try{const r=await fetch('/api/fixtures',{headers:{Accept:'application/json'}});if(!r.ok)throw Error('Fixture API HTTP '+r.status);const data=await r.json();if(!Array.isArray(data.matches))throw Error('The API did not return a matches list.');currentFixtures=archiveAndFilterFixtures(data.matches);const active=new Set(currentFixtures.map(m=>String(getMatchId(m))));vipEntries=vipEntries.filter(e=>active.has(String(e.matchId))&&Number(e.probability)>=VIP_MIN_CONFIDENCE).map(e=>({...e,match:currentFixtures.find(m=>String(getMatchId(m))===String(e.matchId))||e.match}));saveVIPResults();renderFixtures(currentFixtures);renderVIP();updateDashboard();renderHistory();vipBuilt=false;$('vipSummary').textContent=vipEntries.length?`${vipEntries.length} saved qualifying VIP recommendations.`:'Open VIP Predictions to analyse available matches.'}catch(e){$('fixtureList').innerHTML=`<div class="panel error">Unable to load fixtures.<br>${escapeHTML(e.message)}</div>`;$('fixtureMessage').innerHTML='<div class="notice">Check that your backend is running and /api/fixtures is available. Previously archived matches remain in History.</div>';renderHistory()}finally{btn.disabled=false;btn.textContent='REFRESH'}}
 async function fetchAnalysis(match,priority='background'){const id=getMatchId(match);if(id==null)throw Error('Match ID is missing.');const r=await fetch('/api/match/'+encodeURIComponent(id)+'/analysis?priority='+encodeURIComponent(priority),{headers:{Accept:'application/json'}});if(!r.ok)throw Error('Analysis API error: HTTP '+r.status);const data=await r.json();if(data.error)throw Error(data.error);return data}
 function renderTeamForm(teamForm,homeName,awayName){if(!teamForm||typeof teamForm!=='object')return '<div class="form-empty">Team form data is not available yet.</div>';function dataFor(side){for(const k of side==='home'?['home','homeTeam','homeForm','teamHome']:['away','awayTeam','awayForm','teamAway'])if(teamForm[k]&&typeof teamForm[k]==='object')return teamForm[k];return {}}function val(d,keys){for(const k of keys)if(d[k]!=null)return d[k];return null}function recent(d){let r=val(d,['recentForm','form','lastFive','last5','recent','results','lastMatches']);if(typeof r==='string')return r.toUpperCase().replace(/[^WDL]/g,'').split('').slice(0,5);if(!Array.isArray(r))return [];return r.slice(0,5).map(x=>{if(typeof x==='string'){let s=x.toUpperCase();return s.includes('WIN')||s==='W'?'W':s.includes('DRAW')||s==='D'?'D':s.includes('LOSS')||s.includes('LOSE')||s==='L'?'L':''}let s=String(x?.result??x?.outcome??x?.status??'').toUpperCase();return s==='W'||s.includes('WIN')?'W':s==='D'||s.includes('DRAW')?'D':s==='L'||s.includes('LOSS')||s.includes('LOSE')?'L':''}).filter(Boolean)}function card(d,name,away){const played=val(d,['played','matchesPlayed','totalMatches']),wins=val(d,['wins','won']),draws=val(d,['draws','draw']),losses=val(d,['losses','lost']),gf=val(d,['goalsFor','goalsScored','scored']),ga=val(d,['goalsAgainst','goalsConceded','conceded']),form=recent(d),stat=x=>x==null?'—':escapeHTML(x);return `<div class="team-form-card ${away?'away-form':''}"><div class="form-team-heading">${escapeHTML(name)}</div><div class="form-record"><div class="form-stat"><strong>${stat(played)}</strong><small>PLAYED</small></div><div class="form-stat"><strong>${stat(wins)}</strong><small>WINS</small></div><div class="form-stat"><strong>${stat(draws)}</strong><small>DRAWS</small></div><div class="form-stat"><strong>${stat(losses)}</strong><small>LOSSES</small></div></div><div class="form-goals"><div class="goal-stat"><small>GOALS FOR</small><strong>${stat(gf)}</strong></div><div class="goal-stat"><small>GOALS AGAINST</small><strong>${stat(ga)}</strong></div></div><div class="recent-label">RECENT FORM</div><div class="form-chips">${form.length?form.map(x=>`<span class="form-chip ${x==='W'?'win':x==='D'?'draw':'loss'}">${x}</span>`).join(''):'<span class="form-empty">Recent results unavailable.</span>'}</div></div>`}return `<div class="team-form-grid">${card(dataFor('home'),homeName,false)}${card(dataFor('away'),awayName,true)}</div>`}
-function renderMatchAnalysis(data){const m=data.match||currentMatch||{},hn=getHome(m),an=getAway(m),recommendations=getRankedMarketRecommendations(data),picks=recommendations.slice(0,3);const recHTML=picks.length?`<div class="match-card"><div class="match-top"><span class="match-date">MATCH RECOMMENDATIONS</span><span class="status live">TOP ${picks.length} PICKS</span></div><div class="teams"><div class="team-side"><div class="team-name">${escapeHTML(hn)}</div></div><div class="vs">VS</div><div class="team-side away"><div class="team-name">${escapeHTML(an)}</div></div></div><div class="prediction-market">CONFIDENCE</div>${picks.map((x,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 10px;margin-top:9px;border:1px solid rgba(53,255,173,.45);border-radius:12px;background:rgba(53,255,173,.045)"><span style="width:35px;height:35px;flex:0 0 35px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#087b58,#35ffad);color:#fff;font-size:16px;font-weight:900">${i+1}</span><div style="flex:1;min-width:0"><div style="color:#65ffc0;font-size:10px;font-weight:900;letter-spacing:1px">PICK ${i+1}</div><div style="color:#fff;font-size:14px;font-weight:900;margin-top:3px">${escapeHTML(x.market)}</div></div><strong style="color:#35ffad;font-size:17px;white-space:nowrap">${x.probability.toFixed(1)}%</strong></div>`).join('')}</div>`:'<div class="match-card">No market probabilities available yet.</div>';const header=`<div class="analysis-match-header"><div class="analysis-league">${escapeHTML(competitionName(m))}</div><div class="analysis-teams"><div>${escapeHTML(hn)}</div><span>VS</span><div>${escapeHTML(an)}</div></div><div class="analysis-date">${escapeHTML(formatDate(getMatchDate(m)))}</div><div class="analysis-status">${escapeHTML(getStatus(m))}</div></div>`;$('matchDetails').innerHTML=header+`<div class="analysis-section"><h3>RECOMMENDATION</h3><div class="recommendations-list">${recHTML}</div></div><div class="analysis-section"><h3>TEAM FORM</h3>${renderTeamForm(data.teamForm,hn,an)}</div>`}
-async function openMatch(index){const match=currentFixtures[index];if(!match){alert('Match information not found. Please refresh fixtures.');return}currentMatch=match;showPage('match');$('matchDetails').innerHTML='<div class="loading">Loading match analysis...</div>';try{const data=await fetchAnalysis(match,'high');currentAnalysis=data;const best=getRankedMarketRecommendations(data)[0]||null;vipCache.set(String(getMatchId(match)),{data,recommendation:best,probability:best?.probability??null});renderFixtures(currentFixtures);renderMatchAnalysis(data)}catch(e){$('matchDetails').innerHTML=`<div class="panel error">Unable to load match analysis.<br>${escapeHTML(e.message)}<br><br>Please try again.</div>`}}
+function renderMatchAnalysis(data){
+
+  const m=data.match||currentMatch||{};
+
+  const hn=getHome(m);
+  const an=getAway(m);
+
+  const status=getStatus(m);
+
+  const recommendations=getRankedMarketRecommendations(data);
+
+  const picks=recommendations.slice(0,3);
+
+  const liveNotice=status==='LIVE'
+    ?`
+      <div class="notice">
+        LIVE MATCH NOTICE: These are pre-match model
+        estimates. They have not been recalculated
+        using the current live score.
+      </div>
+    `
+    :'';
+
+  const recHTML=picks.length
+    ?`
+      <div class="match-card">
+
+        <div class="match-top">
+          <span class="match-date">
+            MATCH RECOMMENDATIONS
+          </span>
+
+          <span class="status live">
+            TOP ${picks.length} PICKS
+          </span>
+        </div>
+
+        <div class="teams">
+
+          <div class="team-side">
+            <div class="team-name">
+              ${escapeHTML(hn)}
+            </div>
+          </div>
+
+          <div class="vs">VS</div>
+
+          <div class="team-side away">
+            <div class="team-name">
+              ${escapeHTML(an)}
+            </div>
+          </div>
+
+        </div>
+
+        <div class="prediction-market">
+          CONFIDENCE
+        </div>
+
+        ${picks.map((x,i)=>`
+
+          <div style="
+            display:flex;
+            align-items:center;
+            gap:12px;
+            padding:12px 10px;
+            margin-top:9px;
+            border:1px solid rgba(53,255,173,.45);
+            border-radius:12px;
+            background:rgba(53,255,173,.045)
+          ">
+
+            <span style="
+              width:35px;
+              height:35px;
+              flex:0 0 35px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              border-radius:50%;
+              background:linear-gradient(135deg,#087b58,#35ffad);
+              color:#fff;
+              font-size:16px;
+              font-weight:900
+            ">
+              ${i+1}
+            </span>
+
+            <div style="flex:1;min-width:0">
+
+              <div style="
+                color:#65ffc0;
+                font-size:10px;
+                font-weight:900;
+                letter-spacing:1px
+              ">
+                PICK ${i+1}
+              </div>
+
+              <div style="
+                color:#fff;
+                font-size:14px;
+                font-weight:900;
+                margin-top:3px
+              ">
+                ${escapeHTML(x.market)}
+              </div>
+
+            </div>
+
+            <strong style="
+              color:#35ffad;
+              font-size:17px;
+              white-space:nowrap
+            ">
+              ${x.probability.toFixed(1)}%
+            </strong>
+
+          </div>
+
+        `).join('')}
+
+      </div>
+    `
+    :`
+      <div class="match-card">
+        No market probabilities available yet.
+      </div>
+    `;
+
+  const header=`
+    <div class="analysis-match-header">
+
+      <div class="analysis-league">
+        ${escapeHTML(competitionName(m))}
+      </div>
+
+      <div class="analysis-teams">
+        <div>${escapeHTML(hn)}</div>
+        <span>VS</span>
+        <div>${escapeHTML(an)}</div>
+      </div>
+
+      <div class="analysis-date">
+        ${escapeHTML(formatDate(getMatchDate(m)))}
+      </div>
+
+      <div class="analysis-status">
+        ${escapeHTML(status)}
+      </div>
+
+    </div>
+  `;
+
+  $('matchDetails').innerHTML=
+    header+
+
+    `<div class="analysis-section">
+      <h3>RECOMMENDATION</h3>
+      ${liveNotice}
+      <div class="recommendations-list">
+        ${recHTML}
+      </div>
+    </div>`
+
+    +
+
+    `<div class="analysis-section">
+      <h3>TEAM FORM</h3>
+      ${renderTeamForm(data.teamForm,hn,an)}
+    </div>`;
+}
+  async function openMatch(index){const match=currentFixtures[index];if(!match){alert('Match information not found. Please refresh fixtures.');return}currentMatch=match;showPage('match');$('matchDetails').innerHTML='<div class="loading">Loading match analysis...</div>';try{const data=await fetchAnalysis(match,'high');currentAnalysis=data;const best=getRankedMarketRecommendations(data)[0]||null;vipCache.set(String(getMatchId(match)),{data,recommendation:best,probability:best?.probability??null});renderFixtures(currentFixtures);renderMatchAnalysis(data)}catch(e){$('matchDetails').innerHTML=`<div class="panel error">Unable to load match analysis.<br>${escapeHTML(e.message)}<br><br>Please try again.</div>`}}
 const APPROVED_MARKETS=MARKET_DEFINITIONS.map(def=>normalizeMarket(def.name));
 function normalizeMarket(v){return String(v||'').trim().toUpperCase().replace(/[_-]/g,' ').replace(/\s+/g,' ')}
 function isApprovedMarket(r){return APPROVED_MARKETS.includes(normalizeMarket(r?.market||r?.name||''))}
