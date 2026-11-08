@@ -109,7 +109,38 @@ let currentFixtures=[],predictionsScrollPosition = 0,currentMatch=null,currentAn
 const FINISHED_FIXTURES_KEY='gtp_finished_fixtures';
 try{savedPicks=JSON.parse(localStorage.getItem('gtp_picks')||'[]');if(!Array.isArray(savedPicks))savedPicks=[];}catch(e){savedPicks=[];}
 try{finishedFixtures=JSON.parse(localStorage.getItem(FINISHED_FIXTURES_KEY)||'[]');if(!Array.isArray(finishedFixtures))finishedFixtures=[];}catch(e){finishedFixtures=[];}
-let vipEntries=[],vipCache=new Map(),vipBuilding=false,vipBuilt=false;
+/* VIP SYSTEM STORAGE */
+const VIP_MIN_CONFIDENCE = 75;
+const VIP_STORAGE_KEY = 'gtp_vip_results_v1';
+
+let vipEntries = [];
+
+try {
+  const storedVIP = JSON.parse(
+    localStorage.getItem(VIP_STORAGE_KEY) || '[]'
+  );
+
+  if (Array.isArray(storedVIP)) {
+    vipEntries = storedVIP;
+  }
+} catch(e) {
+  vipEntries = [];
+}
+
+let vipCache = new Map();
+let vipBuilding = false;
+let vipBuilt = false;
+
+function saveVIPResults(){
+  try {
+    localStorage.setItem(
+      VIP_STORAGE_KEY,
+      JSON.stringify(vipEntries)
+    );
+  } catch(e) {
+    console.warn('Unable to save VIP results:', e);
+  }
+}
 
 function $(id)
   {return document.getElementById(id);}
@@ -344,137 +375,116 @@ function updateDashboard(){
   $('historyAccuracy').textContent=graded.length?accuracy.toFixed(1)+'%':'0%';
 }
 
-/* FIXTURE API: ended matches are archived, never rendered in Predictions. */
+
+/* FIXTURE API — PRESERVE QUALIFIED VIP RESULTS */
 async function loadFixtures(){
-  const button=$('refreshBtn');if(button){button.disabled=true;button.textContent='LOADING...';}
-  $('fixtureMessage').innerHTML='';$('fixtureList').innerHTML='<div class="loading">Connecting to football data...</div>';
-  try{
-    const response=await fetch('/api/fixtures',{headers:{'Accept':'application/json'}});
-    if(!response.ok)throw new Error('Fixture API HTTP '+response.status);
-    const data=await response.json();
-    if(!Array.isArray(data.matches))throw new Error('The API did not return a matches list.');
-    currentFixtures=archiveAndFilterFixtures(data.matches);
-    vipCache.clear();vipEntries=[];vipBuilt=false;
-    renderFixtures(currentFixtures);
-    $('vipSummary').textContent='Preparing analysis for available matches...';
-    $('vipList').innerHTML='<div class="loading">Building VIP recommendations...</div>';
-    updateDashboard();renderHistory();
-    $('vipSummary').textContent='VIP analysis will start when you open the VIP page.';
-$('vipList').innerHTML='<div class="empty">Open VIP Predictions to generate recommendations.</div>';
-  }catch(error){
-    $('fixtureList').innerHTML=`<div class="panel error">Unable to load fixtures.<br>${escapeHTML(error.message)}</div>`;
-    $('fixtureMessage').innerHTML='<div class="notice">Check that your backend is running and /api/fixtures is available. Previously archived completed matches remain in History on this device.</div>';
-    renderHistory();
-  }finally{if(button){button.disabled=false;button.textContent='REFRESH';}}
-}
-function renderDateRange(matches){
-  const dates=matches.map(match=>getMatchDate(match)).filter(Boolean).map(value=>new Date(value)).filter(date=>!Number.isNaN(date.getTime())).sort((a,b)=>a-b);
-  if(!dates.length)return `<div class="date-banner"><div class="date-icon">▦</div><div class="date-range">AVAILABLE MATCH FIXTURES</div></div>`;
-  const start=dates[0].toISOString().slice(0,10),end=dates[dates.length-1].toISOString().slice(0,10);
-  return `<div class="date-banner"><div class="date-icon">▦</div><div class="date-range">${escapeHTML(start)} — ${escapeHTML(end)}</div></div>`;
-}
-function getVerifiedResult(match){const value=String(match?.result??match?.predictionResult??'').toUpperCase();return value==='WON'||value==='LOST'?value:null;}
-function renderMatchCard(match,index){
-  const id=getMatchId(match),vip=id!==null?vipCache.get(String(id)):null;
-  const recommendation=vip?.recommendation||null,probability=vip?.probability??null;
-  const home=escapeHTML(getHome(match)),away=escapeHTML(getAway(match));
-  const homeLogo=getHomeLogo(match),awayLogo=getAwayLogo(match);
-  const status=getStatus(match),score=getScore(match),date=formatDate(getMatchDate(match));
-  const statusClass=status==='LIVE'?'live':'';
-  const odds=recommendation?.odds??recommendation?.price??recommendation?.decimalOdds??null;
-  const oddsHTML=odds!==null&&odds!==undefined?`<span class="odds-pill">${escapeHTML(odds)}</span>`:'';
-  let marketHTML='',confidenceHTML='';
-  if(recommendation&&probability!==null){
-    marketHTML=`<div class="prediction-market">${escapeHTML(recommendation.market||recommendation.name)}</div>`;
-    confidenceHTML=`<div class="confidence-line">${confidenceBars(probability)}<span>Confidence:</span><strong>${probability.toFixed(1)}% · ${probability>=75?'High':probability>=60?'Medium':'Low'}</strong></div>`;
-  }else{
-    marketHTML='<div class="prediction-market" style="font-size:12px;letter-spacing:1px">ANALYSIS PENDING</div>';
-    confidenceHTML='<div class="confidence-line">Confidence: <strong>Awaiting analysis</strong></div>';
+
+  const button = $('refreshBtn');
+
+  if(button){
+    button.disabled = true;
+    button.textContent = 'LOADING...';
   }
-  return `<div class="match-card"><div class="match-top"><span class="match-date">${escapeHTML(date)}</span><span class="status ${statusClass}">${escapeHTML(status)}</span></div>
-    <div class="teams"><div class="team-side">${homeLogo?`<img class="team-logo" src="${escapeHTML(homeLogo)}" alt="" onerror="this.style.display='none'">`:''}<div class="team-name">${home}</div></div>
-    ${score?`<div class="score">${escapeHTML(score)}</div>`:'<div class="vs">VS</div>'}
-    <div class="team-side away"><div class="team-name">${away}</div>${awayLogo?`<img class="team-logo" src="${escapeHTML(awayLogo)}" alt="" onerror="this.style.display='none'">`:''}</div></div>
-    ${oddsHTML?`<div class="result-row">${oddsHTML}</div>`:''}${marketHTML}${confidenceHTML}
-    <button class="analysis-button" onclick="openMatch(${index})">ANALYSIS →</button></div>`;
+
+  $('fixtureMessage').innerHTML = '';
+
+  $('fixtureList').innerHTML =
+    '<div class="loading">Connecting to football data...</div>';
+
+  try{
+
+    const response = await fetch('/api/fixtures',{
+      headers:{
+        'Accept':'application/json'
+      }
+    });
+
+    if(!response.ok){
+      throw new Error('Fixture API HTTP ' + response.status);
+    }
+
+    const data = await response.json();
+
+    if(!Array.isArray(data.matches)){
+      throw new Error('The API did not return a matches list.');
+    }
+
+    currentFixtures = archiveAndFilterFixtures(data.matches);
+
+    // Keep only VIP matches that are still active.
+    const activeIds = new Set(
+      currentFixtures.map(match =>
+        String(getMatchId(match))
+      )
+    );
+
+    vipEntries = vipEntries.filter(entry =>
+      activeIds.has(String(entry.matchId))
+    );
+
+    // Update stored fixture information.
+    vipEntries = vipEntries.map(entry => {
+
+      const updatedMatch = currentFixtures.find(
+        match =>
+          String(getMatchId(match)) === String(entry.matchId)
+      );
+
+      return updatedMatch
+        ? {...entry,match:updatedMatch}
+        : entry;
+
+    });
+
+    // Do not clear vipEntries or vipCache here.
+    vipBuilt = false;
+
+    saveVIPResults();
+
+    renderFixtures(currentFixtures);
+
+    renderVIP();
+
+    updateDashboard();
+
+    renderHistory();
+
+    $('vipSummary').textContent = vipEntries.length
+      ? vipEntries.length + ' saved qualifying VIP recommendations.'
+      : 'Open VIP Predictions to analyse available matches.';
+
+  }catch(error){
+
+    $('fixtureList').innerHTML = `
+      <div class="panel error">
+        Unable to load fixtures.
+        <br>
+        ${escapeHTML(error.message)}
+      </div>
+    `;
+
+    $('fixtureMessage').innerHTML = `
+      <div class="notice">
+        Check that your backend is running and
+        /api/fixtures is available.
+        Previously archived completed matches
+        remain in History on this device.
+      </div>
+    `;
+
+    renderHistory();
+
+  }finally{
+
+    if(button){
+      button.disabled = false;
+      button.textContent = 'REFRESH';
+    }
+
+  }
+
 }
 
-function renderFixtures(matches){
-const container=$('fixtureList');
-
-const active=(Array.isArray(matches)?matches:[])
-.filter(match=>getStatus(match)!=='ENDED')
-.sort((a,b)=>new Date(getMatchDate(a))-new Date(getMatchDate(b)));
-
-currentFixtures=active;
-
-if(!active.length){
-container.innerHTML='<div class="empty">No live or upcoming fixtures are currently available. Completed matches are moved to History automatically.</div>';
-updateDashboard();
-return;
-}
-
-let html=renderDateRange(active);
-let previousDay='';
-
-active.forEach((match,index)=>{
-const matchDate=new Date(getMatchDate(match));
-
-if(Number.isNaN(matchDate.getTime())){
-  html+=renderMatchCard(match,index);
-  return;
-}
-
-const dayKey=matchDate.toLocaleDateString('en-CA',{
-  timeZone:'Africa/Lagos'
-});
-
-if(dayKey!==previousDay){
-  const today=new Date().toLocaleDateString('en-CA',{
-    timeZone:'Africa/Lagos'
-  });
-
-  const tomorrowDate=new Date();
-  tomorrowDate.setDate(tomorrowDate.getDate()+1);
-
-  const tomorrow=tomorrowDate.toLocaleDateString('en-CA',{
-    timeZone:'Africa/Lagos'
-  });
-
-  let label=matchDate.toLocaleDateString('en-GB',{
-    timeZone:'Africa/Lagos',
-    weekday:'long',
-    day:'2-digit',
-    month:'long',
-    year:'numeric'
-  }).toUpperCase();
-
-  if(dayKey===today) label='TODAY · '+label;
-  else if(dayKey===tomorrow) label='TOMORROW · '+label;
-
-  const count=active.filter(item=>
-    new Date(getMatchDate(item)).toLocaleDateString(
-      'en-CA',{timeZone:'Africa/Lagos'}
-    )===dayKey
-  ).length;
-
-  html+=`
-    <div class="day-separator">
-      📅 ${label}
-      <span>${count} MATCHES</span>
-    </div>
-  `;
-
-  previousDay=dayKey;
-}
-
-html+=renderMatchCard(match,index);
-
-});
-
-container.innerHTML=html;
-updateDashboard();
-}
 
 /* FETCH MATCH ANALYSIS WITH PRIORITY */
 async function fetchAnalysis(match, priority = 'background') {
@@ -800,65 +810,122 @@ function savePick(index){
   saveLocalPicks();updateDashboard();alert('Prediction saved successfully.');
 }
 
-  /* VIP PREDICTIONS — PROGRESSIVE DISPLAY */
-function renderVIP(){
-  const container=$('vipList');
-  const summary=$('vipSummary');
+/* =========================================
+   GENERAL TIPS PRO — VIP PREDICTION SYSTEM
+========================================= */
 
+function renderVIP(){
+
+  const container = $('vipList');
+  const summary = $('vipSummary');
+
+  if(!container || !summary) return;
+
+  // Keep the strongest recommendations at the top.
+  vipEntries.sort(
+    (a,b) => Number(b.probability) - Number(a.probability)
+  );
+
+  // No qualifying recommendations.
   if(!vipEntries.length){
 
     if(vipBuilding){
-      container.innerHTML=
-        '<div class="loading">Analysing matches. Your first recommendations will appear here automatically...</div>';
+
+      container.innerHTML = `
+        <div class="loading">
+          Analysing matches. Waiting for strong recommendations...
+        </div>
+      `;
+
+      summary.textContent =
+        'Searching for matches with at least ' +
+        VIP_MIN_CONFIDENCE + '% model confidence.';
+
+      updateDashboard();
       return;
     }
 
-    container.innerHTML=
-      '<div class="empty">No recommendations are currently available. Please refresh later.</div>';
+    container.innerHTML = `
+      <div class="empty">
+        <strong style="color:var(--green2);font-size:14px">
+          NO STRONG VIP RECOMMENDATIONS AVAILABLE
+        </strong>
+        <br><br>
+        No available match currently meets our
+        minimum ${VIP_MIN_CONFIDENCE}% confidence requirement.
+        <br><br>
+        We are waiting for stronger opportunities rather
+        than displaying weaker predictions.
+      </div>
+    `;
 
-    summary.textContent='No approved recommendations available.';
+    summary.textContent =
+      'VIP recommendations appear only when matches meet the required confidence level.';
+
     updateDashboard();
     return;
   }
 
-  vipEntries.sort((a,b)=>b.probability-a.probability);
+  // Display every qualifying match.
+  container.innerHTML = vipEntries.map((entry,index)=>{
 
-  container.innerHTML=vipEntries.map((entry,index)=>{
-    const match=entry.match;
-    const recommendation=entry.recommendation;
-    const probability=entry.probability;
+    const match = entry.match || {};
 
-    const home=escapeHTML(getHome(match));
-    const away=escapeHTML(getAway(match));
-    const date=escapeHTML(formatDate(getMatchDate(match)));
+    const recommendation = entry.recommendation || {};
 
-    const fixtureIndex=currentFixtures.findIndex(
-      item=>String(getMatchId(item))===String(entry.matchId)
+    const probability = Number(entry.probability) || 0;
+
+    const home = escapeHTML(getHome(match));
+    const away = escapeHTML(getAway(match));
+
+    const date = escapeHTML(
+      formatDate(getMatchDate(match))
+    );
+
+    const fixtureIndex = currentFixtures.findIndex(
+      item =>
+        String(getMatchId(item)) === String(entry.matchId)
     );
 
     return `
       <div class="vip-card">
-        <div class="vip-rank">VIP PICK #${index+1}</div>
+
+        <div class="vip-rank">
+          VIP QUALIFIED MATCH #${index+1}
+        </div>
 
         <div class="match-top">
-          <span class="match-date">${date}</span>
-          <span class="status live">TOP PICK</span>
+
+          <span class="match-date">
+            ${date}
+          </span>
+
+          <span class="status live">
+            STRONG PICK
+          </span>
+
         </div>
 
         <div class="teams">
+
           <div class="team-side">
-            <div class="team-name">${home}</div>
+            <div class="team-name">
+              ${home}
+            </div>
           </div>
 
           <div class="vs">VS</div>
 
           <div class="team-side away">
-            <div class="team-name">${away}</div>
+            <div class="team-name">
+              ${away}
+            </div>
           </div>
+
         </div>
 
         <div class="vip-market">
-          ${escapeHTML(recommendation.market)}
+          ${escapeHTML(recommendation.market || 'RECOMMENDATION')}
         </div>
 
         <div class="vip-confidence">
@@ -866,22 +933,284 @@ function renderVIP(){
         </div>
 
         <div class="confidence-line">
+
           ${confidenceBars(probability)}
+
           <span>Model confidence:</span>
-          <strong>${probability>=75?'High':probability>=60?'Medium':'Low'}</strong>
+
+          <strong>HIGH</strong>
+
         </div>
 
-        ${fixtureIndex>=0?`
-          <button class="analysis-button"
+        ${fixtureIndex >= 0 ? `
+          <button
+            class="analysis-button"
             onclick="openMatch(${fixtureIndex})">
+
             VIEW FULL ANALYSIS →
-          </button>`:''}
+
+          </button>
+        ` : ''}
+
       </div>
     `;
+
   }).join('');
+
+  summary.textContent =
+    vipEntries.length +
+    ' strong VIP recommendation' +
+    (vipEntries.length === 1 ? '' : 's') +
+    ' available · Minimum confidence ' +
+    VIP_MIN_CONFIDENCE + '%';
 
   updateDashboard();
 }
+
+
+/* =========================================
+   VIP ANALYSIS ENGINE
+========================================= */
+
+async function buildVIP(forceRefresh = false){
+
+  if(vipBuilding) return;
+
+  if(!currentFixtures.length){
+
+    vipEntries = [];
+
+    saveVIPResults();
+
+    vipBuilt = true;
+
+    renderVIP();
+
+    $('vipSummary').textContent =
+      'No active fixtures available for VIP analysis.';
+
+    updateDashboard();
+
+    return;
+  }
+
+  vipBuilding = true;
+
+  const button = $('vipRefreshBtn');
+
+  if(button){
+    button.disabled = true;
+    button.textContent = 'ANALYSING...';
+  }
+
+  const matches = currentFixtures.slice().sort((a,b)=>{
+
+    const dateA = new Date(getMatchDate(a)).getTime();
+    const dateB = new Date(getMatchDate(b)).getTime();
+
+    return (
+      (Number.isFinite(dateA) ? dateA : Infinity) -
+      (Number.isFinite(dateB) ? dateB : Infinity)
+    );
+
+  });
+
+  let processed = 0;
+
+  const total = matches.length;
+
+  renderVIP();
+
+  $('vipSummary').textContent =
+    'Starting VIP analysis of ' + total + ' matches...';
+
+  try{
+
+    for(const match of matches){
+
+      // Pause background VIP analysis while viewing match analysis.
+      while(
+        document.querySelector('.page.active')?.id === 'match'
+      ){
+
+        await new Promise(resolve =>
+          setTimeout(resolve,1000)
+        );
+
+      }
+
+      const id = getMatchId(match);
+
+      if(id === null || id === undefined){
+
+        processed++;
+        continue;
+
+      }
+
+      const key = String(id);
+
+      try{
+
+        let data = null;
+
+        // Reuse cached analysis unless a fresh analysis was requested.
+        if(!forceRefresh && vipCache.has(key)){
+
+          const cached = vipCache.get(key);
+
+          if(cached?.data){
+            data = cached.data;
+          }
+
+        }
+
+        // Fetch analysis when necessary.
+        if(!data){
+
+          data = await fetchAnalysis(
+            match,
+            'background'
+          );
+
+        }
+
+        const recommendations =
+          getRankedMarketRecommendations(data);
+
+        const best = recommendations[0] || null;
+
+        // Update the Prediction page cache.
+        vipCache.set(key,{
+
+          data: data,
+
+          recommendation: best,
+
+          probability: best
+            ? best.probability
+            : null
+
+        });
+
+        // Remove the previous version of this match.
+        vipEntries = vipEntries.filter(
+          entry =>
+            String(entry.matchId) !== key
+        );
+
+        // Only add matches that meet the VIP requirement.
+        if(
+          best &&
+          Number(best.probability) >= VIP_MIN_CONFIDENCE
+        ){
+
+          vipEntries.push({
+
+            match: match,
+
+            matchId: id,
+
+            recommendation: best,
+
+            probability: Number(best.probability)
+
+          });
+
+        }
+
+        // Rank strongest matches first.
+        vipEntries.sort(
+          (a,b) =>
+            Number(b.probability) -
+            Number(a.probability)
+        );
+
+        // Save immediately so new results are not lost.
+        saveVIPResults();
+
+        // Display results progressively.
+        renderVIP();
+
+        // Keep Prediction cards updated.
+        renderFixtures(currentFixtures);
+
+      }catch(error){
+
+        console.warn(
+          'VIP analysis failed for match:',
+          id,
+          error
+        );
+
+        // Keep an existing saved recommendation
+        // if the latest analysis request fails.
+
+      }
+
+      processed++;
+
+      $('vipSummary').textContent =
+        'Analysed ' + processed +
+        ' of ' + total +
+        ' matches · ' +
+        vipEntries.length +
+        ' qualifying VIP recommendations';
+
+      renderVIP();
+
+    }
+
+    vipEntries.sort(
+      (a,b) =>
+        Number(b.probability) -
+        Number(a.probability)
+    );
+
+    saveVIPResults();
+
+    vipBuilt = true;
+
+    renderVIP();
+
+    renderFixtures(currentFixtures);
+
+  }finally{
+
+    vipBuilding = false;
+
+    if(button){
+
+      button.disabled = false;
+
+      button.textContent = 'REFRESH';
+
+    }
+
+    renderVIP();
+
+    updateDashboard();
+
+  }
+
+}
+
+
+/* =========================================
+   VIP REFRESH
+========================================= */
+
+function refreshVIP(){
+
+  if(vipBuilding) return;
+
+  // Keep existing qualifying matches visible
+  // while fresh analysis is running.
+  vipBuilt = false;
+
+  buildVIP(true);
+
+  }
 
 /* VIP ENGINE — PRIORITISED, CACHED AND PROGRESSIVE */
 async function buildVIP(forceRefresh){
