@@ -23,6 +23,25 @@ main{width:100%;max-width:760px;margin:auto;padding:17px 15px}.page{display:none
 .history-card,.history-item{padding:14px;margin-bottom:10px;border:1px solid var(--border);border-radius:13px;background:linear-gradient(145deg,#10223a,#0b1d31)}.history-top{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}.history-match{font-size:13px;font-weight:900;margin:12px 0}.history-match span{color:var(--muted);font-size:9px}.history-market{font-size:12px;color:var(--green2);font-weight:900}.history-details{display:flex;justify-content:space-between;gap:10px;margin-top:9px;font-size:10px;color:var(--muted)}.won{color:var(--green2)}.lost{color:var(--red)}.pending{color:var(--yellow)}
 .bottom-nav{position:fixed;z-index:40;bottom:0;left:0;right:0;display:flex;justify-content:center;background:rgba(5,15,28,.97);border-top:1px solid var(--border);padding:8px 5px calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(15px)}.nav-inner{width:100%;max-width:760px;display:grid;grid-template-columns:repeat(5,1fr);gap:3px}.nav-btn{min-width:0;border:0;background:transparent;color:#718ba7;padding:8px 2px;border-radius:10px;font-size:9px;font-weight:900}.nav-btn span{display:block;font-size:17px;margin-bottom:5px}.nav-btn.active{color:var(--green2);background:rgba(53,255,173,.08)}
 @media(max-width:420px){main{padding:14px 11px}.team-logo{width:34px;height:34px;flex-basis:34px}.team-name{font-size:11px}.match-card,.vip-card{padding:13px}.page-title{font-size:21px}.nav-btn{font-size:8px}}
+/* NEON CYAN DATE SEPARATORS */
+.day-separator{
+  background:linear-gradient(135deg,#123b58,#0b2942)!important;
+  border:1px solid #38d8ff!important;
+  border-left:5px solid #38d8ff!important;
+  color:#38d8ff!important;
+  box-shadow:0 0 12px rgba(56,216,255,.35),
+             inset 0 0 10px rgba(56,216,255,.08)!important;
+  font-weight:900!important;
+  text-shadow:0 0 8px rgba(56,216,255,.55)!important;
+}
+
+.day-separator span{
+  background:#38d8ff!important;
+  color:#071426!important;
+  border:1px solid #38d8ff!important;
+  font-weight:900!important;
+  box-shadow:0 0 8px rgba(56,216,255,.4)!important;
+}
 </style>
 </head>
 <body>
