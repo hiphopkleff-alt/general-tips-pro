@@ -800,20 +800,28 @@ function savePick(index){
   saveLocalPicks();updateDashboard();alert('Prediction saved successfully.');
 }
 
-/* VIP PREDICTIONS DISPLAY */
+  /* VIP PREDICTIONS — PROGRESSIVE DISPLAY */
 function renderVIP(){
   const container=$('vipList');
   const summary=$('vipSummary');
 
   if(!vipEntries.length){
-    container.innerHTML='<div class="empty">No recommendations are currently available. Please refresh later.</div>';
+
+    if(vipBuilding){
+      container.innerHTML=
+        '<div class="loading">Analysing matches. Your first recommendations will appear here automatically...</div>';
+      return;
+    }
+
+    container.innerHTML=
+      '<div class="empty">No recommendations are currently available. Please refresh later.</div>';
+
     summary.textContent='No approved recommendations available.';
     updateDashboard();
     return;
   }
 
-  summary.textContent=
-    `${vipEntries.length} recommended matches available · Ranked by highest probability`;
+  vipEntries.sort((a,b)=>b.probability-a.probability);
 
   container.innerHTML=vipEntries.map((entry,index)=>{
     const match=entry.match;
@@ -873,15 +881,19 @@ function renderVIP(){
   }).join('');
 
   updateDashboard();
-}  
-/* VIP recommendations only use live/upcoming currentFixtures. */
+}
+
+/* VIP ENGINE — PRIORITISED, CACHED AND PROGRESSIVE */
 async function buildVIP(forceRefresh){
+
   if(vipBuilding)return;
 
   if(!currentFixtures.length){
     $('vipList').innerHTML=
       '<div class="empty">No live or upcoming fixtures available for VIP analysis.</div>';
+
     $('vipSummary').textContent='No active fixtures to analyse.';
+
     vipEntries=[];
     vipBuilt=true;
     updateDashboard();
@@ -889,37 +901,76 @@ async function buildVIP(forceRefresh){
   }
 
   vipBuilding=true;
-  $('vipSummary').textContent='Analysing matches one at a time...';
 
-  const matches=currentFixtures.slice();
-  const results=[];
+  const matches=currentFixtures.slice().sort((a,b)=>{
+
+    const dateA=new Date(getMatchDate(a)).getTime();
+    const dateB=new Date(getMatchDate(b)).getTime();
+
+    return (Number.isFinite(dateA)?dateA:Infinity)-
+           (Number.isFinite(dateB)?dateB:Infinity);
+  });
+
+  let processed=0;
+  const total=matches.length;
+
+  $('vipSummary').textContent=
+    `Starting priority analysis of ${total} matches...`;
+
+  if(!vipEntries.length){
+    $('vipList').innerHTML=
+      '<div class="loading">Preparing your highest-confidence recommendations...</div>';
+  }
+
+  function updateProgress(){
+
+    $('vipSummary').textContent=
+      `Analysed ${processed} of ${total} matches · ${vipEntries.length} recommendations found`;
+
+    renderVIP();
+  }
 
   try{
-    for(let i=0;i<matches.length;i++){
 
-      // Give priority to analysis opened by the user.
-      if(document.querySelector('.page.active')?.id==='match'){
-        await new Promise(resolve=>setTimeout(resolve,1500));
-        i--;
+    for(const match of matches){
+
+      // Give manually opened match analysis priority.
+      while(document.querySelector('.page.active')?.id==='match'){
+        await new Promise(resolve=>setTimeout(resolve,1000));
+      }
+
+      const id=getMatchId(match);
+
+      if(id===null||id===undefined){
+        processed++;
+        updateProgress();
         continue;
       }
 
-      const match=matches[i];
-      const id=getMatchId(match);
-
-      if(id===null||id===undefined)continue;
+      const key=String(id);
 
       try{
-        const key=String(id);
+
         let data=null;
 
-        if(!forceRefresh&&vipCache.has(key)){
-          data=vipCache.get(key).data;
-        }else{
+        // Reuse existing browser-cached analysis.
+        if(!forceRefresh && vipCache.has(key)){
+
+          const cached=vipCache.get(key);
+
+          if(cached?.data){
+            data=cached.data;
+          }
+        }
+
+        // Only request analysis when no usable cached data exists.
+        if(!data){
           data=await fetchAnalysis(match,'background');
         }
 
-        const recommendations=getRankedMarketRecommendations(data);
+        const recommendations=
+          getRankedMarketRecommendations(data);
+
         const best=recommendations[0]||null;
 
         vipCache.set(key,{
@@ -928,37 +979,70 @@ async function buildVIP(forceRefresh){
           probability:best?best.probability:null
         });
 
+        // Add or update this match immediately.
+        vipEntries=vipEntries.filter(
+          entry=>String(entry.matchId)!==key
+        );
+
         if(best){
-          results.push({
+
+          vipEntries.push({
             match,
             matchId:id,
             recommendation:best,
             probability:best.probability
           });
+
         }
 
+        // Sort and display without waiting for the other matches.
+        vipEntries.sort(
+          (a,b)=>b.probability-a.probability
+        );
+
+        renderVIP();
+
+        // Update the Prediction cards too.
         renderFixtures(currentFixtures);
 
       }catch(error){
-        console.warn('VIP analysis failed:',id,error);
+
+        console.warn(
+          'VIP analysis failed:',
+          id,
+          error
+        );
+
       }
 
-      $('vipSummary').textContent=
-        `Analysed ${i+1} of ${matches.length} matches...`;
+      processed++;
+      updateProgress();
 
-      // Avoid flooding the backend request queue.
-      await new Promise(resolve=>setTimeout(resolve,1200));
+      // No additional frontend delay.
+      // The backend already controls API request spacing.
     }
 
-    results.sort((a,b)=>b.probability-a.probability);
-    vipEntries=results;
+    vipEntries.sort(
+      (a,b)=>b.probability-a.probability
+    );
+
     vipBuilt=true;
 
     renderVIP();
     renderFixtures(currentFixtures);
 
+    $('vipSummary').textContent=
+      `Analysis complete · ${vipEntries.length} recommendations from ${total} matches`;
+
   }finally{
+
     vipBuilding=false;
+
+    if(!vipEntries.length){
+      renderVIP();
+    }
+
+    updateDashboard();
   }
 }
 
