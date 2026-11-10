@@ -707,6 +707,44 @@ async function buildMatchAnalysis(matchId, priorityState) {
 }
 
 /* =====================================
+   AVAILABLE COMPETITIONS
+===================================== */
+
+app.get("/api/competitions", async (req, res) => {
+  try {
+    const data = await footballRequest(
+      "/competitions",
+      "normal"
+    );
+
+    const competitions = (data.competitions || [])
+      .map(c => ({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        type: c.type,
+        area: c.area?.name,
+        plan: c.plan
+      }));
+
+    res.json({
+      count: competitions.length,
+      competitions
+    });
+
+  } catch (error) {
+    console.error(
+      "Competition error:",
+      error.message
+    );
+
+    res.status(error.status || 500).json({
+      error: "Unable to load competitions.",
+      details: error.message
+    });
+  }
+});
+/* =====================================
    HEALTH CHECK
 ===================================== */
 
