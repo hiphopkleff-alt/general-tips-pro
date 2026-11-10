@@ -764,79 +764,346 @@ app.get("/api/health", (req, res) => {
 });
 
 /* =====================================
-   UPCOMING FIXTURES
+   MULTI-COMPETITION FIXTURE ENGINE
+   GENERAL FOOTBALL TIPS V1.0
+===================================== */
+
+// Competitions confirmed available
+// on this Football-Data.org account.
+
+const FIXTURE_COMPETITIONS = [
+  "BSA",  // Brazil Serie A
+  "ELC",  // England Championship
+  "PL",   // English Premier League
+  "CL",   // UEFA Champions League
+  "EC",   // European Championship
+  "FL1",  // France Ligue 1
+  "BL1",  // Germany Bundesliga
+  "SA",   // Italy Serie A
+  "DED",  // Netherlands Eredivisie
+  "PPL",  // Portugal Primeira Liga
+  "CLI",  // Copa Libertadores
+  "PD",   // Spain Primera Division
+  "WC"    // FIFA World Cup
+];
+
+const FIXTURE_CACHE_DURATION = 5 * 60 * 1000;
+
+let fixtureRefreshPromise = null;
+
+/* =====================================
+   FIXTURE DATE RANGE
+===================================== */
+
+function getFixtureDateRange() {
+  const today = new Date();
+
+  const dateFrom = today
+    .toISOString()
+    .slice(0, 10);
+
+  const nextWeek = new Date(today);
+
+  nextWeek.setUTCDate(
+    nextWeek.getUTCDate() + 7
+  );
+
+  const dateTo = nextWeek
+    .toISOString()
+    .slice(0, 10);
+
+  return {
+    dateFrom,
+    dateTo
+  };
+}
+
+/* =====================================
+   FETCH ONE COMPETITION
+===================================== */
+
+async function fetchCompetitionFixtures(
+  competitionCode,
+  dateFrom,
+  dateTo
+) {
+  const endpoint =
+    "/competitions/" +
+    encodeURIComponent(competitionCode) +
+    "/matches?dateFrom=" +
+    encodeURIComponent(dateFrom) +
+    "&dateTo=" +
+    encodeURIComponent(dateTo);
+
+  const data = await footballRequest(
+    endpoint,
+    "normal"
+  );
+
+  return data.matches || [];
+}
+
+/* =====================================
+   REMOVE DUPLICATE MATCHES
+===================================== */
+
+function deduplicateFixtures(matches) {
+  const unique = new Map();
+
+  for (const match of matches || []) {
+    if (!match || !match.id) continue;
+
+    unique.set(
+      String(match.id),
+      match
+    );
+  }
+
+  return Array.from(unique.values());
+}
+
+/* =====================================
+   FIXTURE STATUS PRIORITY
+===================================== */
+
+function sortFixtures(matches) {
+  return matches.sort((a, b) => {
+    const dateA = new Date(a.utcDate).getTime();
+    const dateB = new Date(b.utcDate).getTime();
+
+    return dateA - dateB;
+  });
+}
+
+/* =====================================
+   FETCH ALL COMPETITIONS
+===================================== */
+
+async function refreshAllCompetitionFixtures() {
+
+  if (fixtureRefreshPromise) {
+    return fixtureRefreshPromise;
+  }
+
+  fixtureRefreshPromise = (async () => {
+
+    const {
+      dateFrom,
+      dateTo
+    } = getFixtureDateRange();
+
+    console.log(
+      "Starting multi-competition fixture refresh:",
+      dateFrom,
+      "to",
+      dateTo
+    );
+
+    const results = await Promise.allSettled(
+
+      FIXTURE_COMPETITIONS.map(code =>
+        fetchCompetitionFixtures(
+          code,
+          dateFrom,
+          dateTo
+        )
+      )
+
+    );
+
+    let allMatches = [];
+
+    const successfulCompetitions = [];
+    const failedCompetitions = [];
+
+    results.forEach((result, index) => {
+
+      const competitionCode =
+        FIXTURE_COMPETITIONS[index];
+
+      if (result.status === "fulfilled") {
+
+        const matches = result.value;
+
+        allMatches.push(...matches);
+
+        successfulCompetitions.push({
+          code: competitionCode,
+          matches: matches.length
+        });
+
+        console.log(
+          "Competition loaded:",
+          competitionCode,
+          "| Matches:",
+          matches.length
+        );
+
+      } else {
+
+        failedCompetitions.push({
+          code: competitionCode,
+          error: result.reason?.message ||
+            "Unknown API error"
+        });
+
+        console.error(
+          "Competition failed:",
+          competitionCode,
+          result.reason?.message
+        );
+
+      }
+
+    });
+
+    if (!successfulCompetitions.length) {
+      throw new Error(
+        "Unable to retrieve fixtures from any competition."
+      );
+    }
+
+    // Remove duplicate match IDs.
+    const uniqueMatches =
+      deduplicateFixtures(allMatches);
+
+    // Keep all returned statuses so the
+    // frontend can archive finished matches.
+    const sortedMatches =
+      sortFixtures(uniqueMatches);
+
+    // Save match information for analysis.
+    saveFixtureMatches(sortedMatches);
+
+    const result = {
+
+      count: sortedMatches.length,
+
+      matches: sortedMatches,
+
+      dateFrom,
+
+      dateTo,
+
+      interval: "7 days",
+
+      competitionsChecked:
+        FIXTURE_COMPETITIONS.length,
+
+      successfulCompetitions,
+
+      failedCompetitions,
+
+      updatedAt: new Date().toISOString()
+
+    };
+
+    fixtureCache.data = result;
+
+    fixtureCache.dateFrom = dateFrom;
+
+    fixtureCache.dateTo = dateTo;
+
+    fixtureCache.expiresAt =
+      Date.now() + FIXTURE_CACHE_DURATION;
+
+    console.log(
+      "Multi-competition refresh completed.",
+      "Total matches:",
+      sortedMatches.length,
+      "| Successful competitions:",
+      successfulCompetitions.length,
+      "| Failed competitions:",
+      failedCompetitions.length
+    );
+
+    return result;
+
+  })();
+
+  try {
+
+    return await fixtureRefreshPromise;
+
+  } finally {
+
+    fixtureRefreshPromise = null;
+
+  }
+}
+
+/* =====================================
+   FIXTURES API ENDPOINT
 ===================================== */
 
 app.get("/api/fixtures", async (req, res) => {
+
   try {
+
     if (!API_TOKEN) {
+
       return res.status(503).json({
         error: "Football API token is not configured."
       });
+
     }
 
-    const { dateFrom, dateTo } = getFixtureDateRange();
+    const {
+      dateFrom,
+      dateTo
+    } = getFixtureDateRange();
 
+    // Return valid cached fixtures.
     if (
       fixtureCache.data &&
       Date.now() < fixtureCache.expiresAt &&
       fixtureCache.dateFrom === dateFrom &&
       fixtureCache.dateTo === dateTo
     ) {
-      return res.json(fixtureCache.data);
+
+      return res.json(
+        fixtureCache.data
+      );
+
     }
 
-    if (!pendingFixtures) {
-      const fixtureRequest = footballRequest(
-        "/matches?dateFrom=" +
-        dateFrom +
-        "&dateTo=" +
-        dateTo,
-        "normal"
-      )
-        .then(data => {
-          const matches = (data.matches || [])
-            .sort((a, b) =>
-              new Date(a.utcDate) - new Date(b.utcDate)
-            );
+    // Refresh all available competitions.
+    const result =
+      await refreshAllCompetitionFixtures();
 
-          saveFixtureMatches(matches);
-
-          const result = {
-            count: matches.length,
-            matches,
-            dateFrom,
-            dateTo,
-            interval: "7 days",
-            updatedAt: new Date().toISOString()
-          };
-
-          fixtureCache.data = result;
-          fixtureCache.dateFrom = dateFrom;
-          fixtureCache.dateTo = dateTo;
-          fixtureCache.expiresAt =
-            Date.now() + 5 * 60 * 1000;
-
-          return result;
-        });
-
-      pendingFixtures = fixtureRequest;
-    }
-
-    const result = await pendingFixtures;
-    res.json(result);
+    return res.json(result);
 
   } catch (error) {
-    console.error("Fixture error:", error.message);
 
-    res.status(error.status || 500).json({
+    console.error(
+      "Multi-competition fixture error:",
+      error.message
+    );
+
+    // If refreshing fails, preserve the
+    // last available fixture data.
+    if (fixtureCache.data) {
+
+      return res.json({
+        ...fixtureCache.data,
+        stale: true,
+        refreshError: error.message
+      });
+
+    }
+
+    return res.status(
+      error.status || 500
+    ).json({
+
       error: "Unable to load football fixtures.",
+
       details: error.message
+
     });
 
-  } finally {
-    pendingFixtures = null;
   }
+
 });
 
 /* =====================================
