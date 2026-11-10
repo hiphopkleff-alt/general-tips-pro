@@ -5,17 +5,15 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN;
-const API_BASE = 'https://api.football-data.org/v4';
+const API_TOKEN = process.env.API_FOOTBALL_KEY;
+const API_BASE = 'https://v3.football.api-sports.io';
 const API_REQUEST_INTERVAL = 6500;
-const DEFAULT_COMPETITIONS = 'PL,ELC,CL,EC,FL1,BL1,SA,DED,PPL,CLI,PD,BSA,WC';
-const COMPETITIONS = String(process.env.FOOTBALL_COMPETITIONS || DEFAULT_COMPETITIONS).split(',').map(x => x.trim()).filter(Boolean);
-
-const FIXTURE_CACHE_TTL = 5 * 60 * 1000;
+const FIXTURE_PAGES = 3;
+const FIXTURE_CACHE_TTL = 2 * 60 * 60 * 1000;
 const ANALYSIS_CACHE_TTL = 60 * 60 * 1000;
-const TEAM_CACHE_TTL = 60 * 60 * 1000;
-const MATCH_CACHE_TTL = 60 * 1000;
-const LIVE_MATCH_CACHE_TTL = 15 * 1000;
+const TEAM_CACHE_TTL = 12 * 60 * 60 * 1000;
+const MATCH_CACHE_TTL = 5 * 60 * 1000;
+const LIVE_MATCH_CACHE_TTL = 60 * 1000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -59,7 +57,9 @@ function now() {
 }
 
 function isLiveStatus(status) {
-  return LIVE_STATUSES.has(String(status || '').toUpperCase());
+  return LIVE_STATUSES.has(
+    String(status || '').toUpperCase()
+  );
 }
 
 function cacheGet(map, key, ttl) {
@@ -84,28 +84,34 @@ function cacheSet(map, key, value) {
 function priorityWeight(priority) {
   const p = String(priority || 'background').toLowerCase();
 
-  if (p === 'high' || p === 'urgent') return 0;
-  if (p === 'normal') return 1;
-
-  return 2;
+  return p === 'high' || p === 'urgent'
+    ? 0
+    : p === 'normal'
+      ? 1
+      : 2;
 }
 
 function normalizePriority(priority) {
   const weight = priorityWeight(priority);
 
-  if (weight === 0) return 'high';
-  if (weight === 1) return 'normal';
-
-  return 'background';
+  return weight === 0
+    ? 'high'
+    : weight === 1
+      ? 'normal'
+      : 'background';
 }
 
 function promoteFootballRequest(task, priority) {
-  if (priorityWeight(priority) < task.weight && !task.started) {
+  if (
+    priorityWeight(priority) < task.weight &&
+    !task.started
+  ) {
     task.weight = priorityWeight(priority);
 
-    apiQueue.sort((a, b) =>
-      a.weight - b.weight ||
-      a.createdAt - b.createdAt
+    apiQueue.sort(
+      (a, b) =>
+        a.weight - b.weight ||
+        a.createdAt - b.createdAt
     );
   }
 }
@@ -117,20 +123,24 @@ async function processApiQueue() {
 
   try {
     while (apiQueue.length) {
-      apiQueue.sort((a, b) =>
-        a.weight - b.weight ||
-        a.createdAt - b.createdAt
+      apiQueue.sort(
+        (a, b) =>
+          a.weight - b.weight ||
+          a.createdAt - b.createdAt
       );
 
       const task = apiQueue.shift();
 
       const wait = Math.max(
         0,
-        API_REQUEST_INTERVAL - (now() - lastApiRequestAt)
+        API_REQUEST_INTERVAL -
+        (now() - lastApiRequestAt)
       );
 
       if (wait) {
-        await new Promise(resolve => setTimeout(resolve, wait));
+        await new Promise(resolve =>
+          setTimeout(resolve, wait)
+        );
       }
 
       task.started = true;
@@ -152,10 +162,15 @@ async function processApiQueue() {
   }
 }
 
-function footballRequest(endpoint, priority = 'background') {
+function footballRequest(
+  endpoint,
+  priority = 'background'
+) {
   if (!API_TOKEN) {
     return Promise.reject(
-      new Error('FOOTBALL_DATA_TOKEN is not configured.')
+      new Error(
+        'API_FOOTBALL_KEY is not configured in Render.'
+      )
     );
   }
 
@@ -169,22 +184,42 @@ function footballRequest(endpoint, priority = 'background') {
       reject,
 
       run: async () => {
-        const response = await fetch(API_BASE + endpoint, {
-          headers: {
-            'X-Auth-Token': API_TOKEN,
-            Accept: 'application/json'
+        const response = await fetch(
+          API_BASE + endpoint,
+          {
+            method: 'GET',
+            headers: {
+              'x-apisports-key': API_TOKEN,
+              Accept: 'application/json'
+            }
           }
-        });
+        );
 
-        const body = await response.json().catch(() => ({}));
+        const body = await response
+          .json()
+          .catch(() => ({}));
 
-        if (!response.ok) {
-          const message =
+        if (
+          !response.ok ||
+          (
+            body.errors &&
+            Object.keys(body.errors).length
+          )
+        ) {
+          const detail =
             body.message ||
-            `Football data API returned HTTP ${response.status}`;
+            (
+              typeof body.errors === 'object'
+                ? JSON.stringify(body.errors)
+                : body.errors
+            );
 
-          const error = new Error(message);
-          error.status = response.status;
+          const error = new Error(
+            detail ||
+            `API-Football returned HTTP ${response.status}`
+          );
+
+          error.status = response.status || 502;
 
           throw error;
         }
@@ -209,7 +244,11 @@ function poisson(lambda, k) {
     factorial *= i;
   }
 
-  return Math.exp(-lambda) * Math.pow(lambda, k) / factorial;
+  return (
+    Math.exp(-lambda) *
+    Math.pow(lambda, k) /
+    factorial
+  );
 }
 
 function poissonDistribution(lambda, max = 10) {
@@ -219,474 +258,563 @@ function poissonDistribution(lambda, max = 10) {
     values.push(poisson(lambda, i));
   }
 
-  const sum = values.reduce((a, b) => a + b, 0);
+  const sum = values.reduce(
+    (a, b) => a + b,
+    0
+  );
 
   return values.map(v => v / (sum || 1));
 }
+function mapFixtureStatus(short) {
+  const s = String(short || '').toUpperCase();
 
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
+  if (['1H', '2H', 'LIVE'].includes(s)) return 'IN_PLAY';
+  if (['HT', 'BT'].includes(s)) return 'PAUSED';
+  if (['ET', 'AET'].includes(s)) return 'EXTRA_TIME';
+  if (s === 'P') return 'PENALTY_SHOOTOUT';
 
-function percent(n) {
-  return Math.round(clamp(n, 0, 1) * 1000) / 10;
-}
-
-function marketProbabilities(lambdaHome, lambdaAway) {
-  const home = poissonDistribution(lambdaHome, 10);
-  const away = poissonDistribution(lambdaAway, 10);
-
-  let homeWin = 0;
-  let draw = 0;
-  let awayWin = 0;
-  let bttsYes = 0;
-
-  const totals = Array(22).fill(0);
-
-  for (let h = 0; h < home.length; h++) {
-    for (let a = 0; a < away.length; a++) {
-      const p = home[h] * away[a];
-
-      if (h > a) {
-        homeWin += p;
-      } else if (h === a) {
-        draw += p;
-      } else {
-        awayWin += p;
-      }
-
-      if (h > 0 && a > 0) {
-        bttsYes += p;
-      }
-
-      totals[h + a] += p;
-    }
+  if (['FT', 'PEN', 'AWD', 'WO'].includes(s)) {
+    return 'FINISHED';
   }
 
-  const over = threshold =>
-    totals.slice(threshold + 1).reduce((a, b) => a + b, 0);
+  if (s === 'PST') return 'POSTPONED';
+  if (s === 'CANC') return 'CANCELLED';
+  if (s === 'ABD') return 'ABANDONED';
+  if (['SUSP', 'INT'].includes(s)) return 'SUSPENDED';
+  if (s === 'TBD') return 'TIMED';
 
-  const under = threshold => 1 - over(threshold);
-
-  return {
-    homeWin: percent(homeWin),
-    draw: percent(draw),
-    awayWin: percent(awayWin),
-
-    doubleChance1X: percent(homeWin + draw),
-    doubleChanceX2: percent(draw + awayWin),
-    doubleChance12: percent(homeWin + awayWin),
-
-    over05: percent(over(0)),
-    under05: percent(under(0)),
-
-    over15: percent(over(1)),
-    under15: percent(under(1)),
-
-    over25: percent(over(2)),
-    under25: percent(under(2)),
-
-    over35: percent(over(3)),
-    under35: percent(under(3)),
-
-    bttsYes: percent(bttsYes),
-    bttsNo: percent(1 - bttsYes)
-  };
+  return 'SCHEDULED';
 }
 
-function makeRecommendations(probabilities) {
-  const labels = {
-    homeWin: 'HOME WIN (1)',
-    draw: 'DRAW (X)',
-    awayWin: 'AWAY WIN (2)',
+function mapFixture(item) {
+  const fixture = item.fixture || {};
+  const teams = item.teams || {};
+  const goals = item.goals || {};
+  const score = item.score || {};
+  const league = item.league || {};
+  const home = teams.home || {};
+  const away = teams.away || {};
 
-    doubleChance1X: 'DOUBLE CHANCE 1X',
-    doubleChanceX2: 'DOUBLE CHANCE X2',
-    doubleChance12: 'DOUBLE CHANCE 12',
-
-    over05: 'OVER 0.5 GOALS',
-    under05: 'UNDER 0.5 GOALS',
-
-    over15: 'OVER 1.5 GOALS',
-    under15: 'UNDER 1.5 GOALS',
-
-    over25: 'OVER 2.5 GOALS',
-    under25: 'UNDER 2.5 GOALS',
-
-    over35: 'OVER 3.5 GOALS',
-    under35: 'UNDER 3.5 GOALS',
-
-    bttsYes: 'BTTS YES',
-    bttsNo: 'BTTS NO'
-  };
-
-  return Object.entries(probabilities)
-    .map(([key, probability]) => ({
-      market: labels[key] || key,
-      key,
-      probability
-    }))
-    .sort((a, b) => b.probability - a.probability);
-}
-
-function getScoreNumbers(match) {
-  const score = match?.score || {};
-  const running = score.fullTime || score.fulltime || {};
-
-  const home =
-    running.home ??
-    running.homeTeam ??
-    score.home ??
-    score.homeTeam;
-
-  const away =
-    running.away ??
-    running.awayTeam ??
-    score.away ??
-    score.awayTeam;
-
-  return {
-    home: Number.isInteger(home)
-      ? home
-      : Number.isFinite(Number(home))
-        ? Number(home)
-        : null,
-
-    away: Number.isInteger(away)
-      ? away
-      : Number.isFinite(Number(away))
-        ? Number(away)
-        : null
-  };
-}
-
-function getValidMinute(match) {
-  const raw = match?.minute;
-
-  if (
-    Number.isInteger(raw) &&
-    raw >= 0 &&
-    raw <= 130
-  ) {
-    return raw;
-  }
-
-  return null;
-}
-
-function liveProbabilityModel(preHomeXG, preAwayXG, match) {
-  const status = String(match?.status || '').toUpperCase();
-  const score = getScoreNumbers(match);
-  const minute = getValidMinute(match);
-
-  if (!isLiveStatus(status)) {
-    return {
-      available: false,
-      reason: 'Match is not currently live.'
-    };
-  }
-
-  if (minute === null) {
-    return {
-      available: false,
-      reason: 'The data provider has not supplied a reliable match minute.'
-    };
-  }
-
-  if (score.home === null || score.away === null) {
-    return {
-      available: false,
-      reason: 'A reliable live score is not available.'
-    };
-  }
-
-  const duration =
-    match?.score?.duration === 'EXTRA_TIME' ||
-    status === 'EXTRA_TIME'
-      ? 120
-      : 90;
-
-  const remaining = clamp(duration - minute, 0, duration);
-
-  let remainingHome = Math.max(
-    0.08,
-    preHomeXG * (remaining / 90)
+  const status = mapFixtureStatus(
+    fixture.status && fixture.status.short
   );
 
-  let remainingAway = Math.max(
-    0.08,
-    preAwayXG * (remaining / 90)
-  );
+  const elapsed =
+    fixture.status &&
+    fixture.status.elapsed != null
+      ? fixture.status.elapsed
+      : null;
 
-  if (score.home < score.away) remainingHome *= 1.12;
-  if (score.away < score.home) remainingAway *= 1.12;
+  const homeGoals =
+    goals.home != null ? goals.home : null;
 
-  if (score.home > score.away) remainingHome *= 0.94;
-  if (score.away > score.home) remainingAway *= 0.94;
+  const awayGoals =
+    goals.away != null ? goals.away : null;
 
-  remainingHome = clamp(remainingHome, 0.01, 3.5);
-  remainingAway = clamp(remainingAway, 0.01, 3.5);
+  const match = {
+    id: fixture.id,
 
-  const homeDist = poissonDistribution(remainingHome, 9);
-  const awayDist = poissonDistribution(remainingAway, 9);
+    utcDate: fixture.date,
 
-  let homeWin = 0;
-  let draw = 0;
-  let awayWin = 0;
-  let bttsYes = 0;
+    status,
 
-  const totals = Array(32).fill(0);
+    minute: elapsed,
 
-  for (let h = 0; h < homeDist.length; h++) {
-    for (let a = 0; a < awayDist.length; a++) {
-      const finalHome = score.home + h;
-      const finalAway = score.away + a;
-      const p = homeDist[h] * awayDist[a];
-
-      if (finalHome > finalAway) {
-        homeWin += p;
-      } else if (finalHome === finalAway) {
-        draw += p;
-      } else {
-        awayWin += p;
-      }
-
-      if (finalHome > 0 && finalAway > 0) {
-        bttsYes += p;
-      }
-
-      totals[finalHome + finalAway] += p;
-    }
-  }
-
-  const over = n =>
-    totals.slice(n + 1).reduce((a, b) => a + b, 0);
-
-  const under = n => 1 - over(n);
-
-  const probabilities = {
-    homeWin: percent(homeWin),
-    draw: percent(draw),
-    awayWin: percent(awayWin),
-
-    doubleChance1X: percent(homeWin + draw),
-    doubleChanceX2: percent(draw + awayWin),
-    doubleChance12: percent(homeWin + awayWin),
-
-    over05: percent(over(0)),
-    under05: percent(under(0)),
-
-    over15: percent(over(1)),
-    under15: percent(under(1)),
-
-    over25: percent(over(2)),
-    under25: percent(under(2)),
-
-    over35: percent(over(3)),
-    under35: percent(under(3)),
-
-    bttsYes: percent(bttsYes),
-    bttsNo: percent(1 - bttsYes)
-  };
-
-  return {
-    available: true,
-    isLiveAdjusted: true,
-    minute,
-    currentScore: score,
-
-    expectedRemainingGoals: {
-      home: Math.round(remainingHome * 100) / 100,
-      away: Math.round(remainingAway * 100) / 100
+    homeTeam: {
+      id: home.id,
+      name: home.name || 'Home Team',
+      shortName: home.name || 'Home Team',
+      crest: home.logo || null
     },
 
-    probabilities,
-    recommendations: makeRecommendations(probabilities),
-    generatedAt: new Date().toISOString()
+    awayTeam: {
+      id: away.id,
+      name: away.name || 'Away Team',
+      shortName: away.name || 'Away Team',
+      crest: away.logo || null
+    },
+
+    competition: {
+      id: league.id,
+      name: league.name || 'Football',
+      code: league.country || ''
+    },
+
+    score: {
+      fullTime: {
+        home: homeGoals,
+        away: awayGoals
+      },
+      halfTime: {
+        home:
+          score.halftime &&
+          score.halftime.home != null
+            ? score.halftime.home
+            : null,
+        away:
+          score.halftime &&
+          score.halftime.away != null
+            ? score.halftime.away
+            : null
+      }
+    },
+
+    venue: fixture.venue
+      ? fixture.venue.name
+      : null,
+
+    apiFootball: {
+      fixtureId: fixture.id,
+      homeTeamId: home.id,
+      awayTeamId: away.id,
+      leagueId: league.id,
+      statusShort:
+        fixture.status &&
+        fixture.status.short
+          ? fixture.status.short
+          : ''
+    }
   };
+
+  return match;
+}
+
+function dateString(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getLagosToday() {
+  const parts = new Intl.DateTimeFormat(
+    'en-CA',
+    {
+      timeZone: 'Africa/Lagos',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }
+  ).formatToParts(new Date());
+
+  const values = {};
+
+  for (const part of parts) {
+    values[part.type] = part.value;
+  }
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function addDays(dateText, days) {
+  const date = new Date(
+    `${dateText}T12:00:00Z`
+  );
+
+  date.setUTCDate(
+    date.getUTCDate() + days
+  );
+
+  return dateString(date);
+}
+
+function sortFixtures(fixtures) {
+  return fixtures.sort((a, b) => {
+    const aDate = new Date(a.utcDate || 0).getTime();
+    const bDate = new Date(b.utcDate || 0).getTime();
+
+    return aDate - bDate;
+  });
+}
+
+async function fetchFixturePage(
+  from,
+  to,
+  page,
+  priority
+) {
+  const params = new URLSearchParams({
+    from,
+    to,
+    timezone: 'Africa/Lagos',
+    page: String(page)
+  });
+
+  return footballRequest(
+    `/fixtures?${params.toString()}`,
+    priority
+  );
+}
+
+async function fetchAllFixtures(priority = 'normal') {
+  const today = getLagosToday();
+  const endDate = addDays(today, 10);
+
+  const all = [];
+  const seen = new Set();
+
+  for (
+    let page = 1;
+    page <= FIXTURE_PAGES;
+    page++
+  ) {
+    const result = await fetchFixturePage(
+      today,
+      endDate,
+      page,
+      priority
+    );
+
+    const rows = Array.isArray(result.response)
+      ? result.response
+      : [];
+
+    for (const row of rows) {
+      const mapped = mapFixture(row);
+
+      if (
+        mapped.id &&
+        !seen.has(String(mapped.id))
+      ) {
+        seen.add(String(mapped.id));
+        all.push(mapped);
+      }
+    }
+
+    const totalPages =
+      result.paging &&
+      Number(result.paging.total)
+        ? Number(result.paging.total)
+        : 1;
+
+    if (page >= totalPages) break;
+  }
+
+  sortFixtures(all);
+
+  return all;
+}
+
+async function getFixtures(priority = 'normal', force = false) {
+  if (
+    !force &&
+    fixtureCache.value &&
+    now() - fixtureCache.at < FIXTURE_CACHE_TTL
+  ) {
+    return fixtureCache.value;
+  }
+
+  const fixtures = await fetchAllFixtures(priority);
+
+  fixtureCache.value = fixtures;
+  fixtureCache.at = now();
+
+  for (const fixture of fixtures) {
+    matchCache.set(String(fixture.id), {
+      value: fixture,
+      at: now()
+    });
+  }
+
+  return fixtures;
+}
+
+function getFixtureFromCache(id) {
+  const item = matchCache.get(String(id));
+
+  if (!item) return null;
+
+  if (
+    now() - item.at >
+    (
+      isLiveStatus(item.value.status)
+        ? LIVE_MATCH_CACHE_TTL
+        : MATCH_CACHE_TTL
+    )
+  ) {
+    return null;
+  }
+
+  return item.value;
 }
 
 async function getMatchInformation(
-  matchId,
-  priority = 'background',
-  forceFresh = false
+  id,
+  priority = 'normal'
 ) {
-  if (!forceFresh) {
-    const cached = cacheGet(
-      matchCache,
-      matchId,
-      MATCH_CACHE_TTL
+  const cached = getFixtureFromCache(id);
+
+  if (cached) return cached;
+
+  const existing = matchPending.get(String(id));
+
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const result = await footballRequest(
+      `/fixtures?id=${encodeURIComponent(id)}`,
+      priority
     );
 
-    if (cached && !isLiveStatus(cached.status)) {
-      return cached;
+    const row =
+      Array.isArray(result.response) &&
+      result.response.length
+        ? result.response[0]
+        : null;
+
+    if (!row) {
+      throw new Error('Match was not found.');
     }
 
-    if (
-      cached &&
-      isLiveStatus(cached.status) &&
-      now() - matchCache.get(String(matchId)).at < LIVE_MATCH_CACHE_TTL
-    ) {
-      return cached;
-    }
-  }
+    const match = mapFixture(row);
 
-  if (matchPending.has(String(matchId))) {
-    return matchPending.get(String(matchId));
-  }
-
-  const pending = footballRequest(
-    `/matches/${encodeURIComponent(matchId)}`,
-    priority
-  )
-    .then(data => {
-      const match = data.match || data;
-
-      cacheSet(matchCache, matchId, match);
-
-      return match;
-    })
-    .finally(() => {
-      matchPending.delete(String(matchId));
+    matchCache.set(String(id), {
+      value: match,
+      at: now()
     });
 
-  matchPending.set(String(matchId), pending);
+    return match;
+  })();
 
-  return pending;
+  matchPending.set(String(id), promise);
+
+  try {
+    return await promise;
+  } finally {
+    matchPending.delete(String(id));
+  }
 }
 
-async function getTeamStats(teamId, priority = 'background') {
+function safeNumber(value, fallback = 0) {
+  const n = Number(value);
+
+  return Number.isFinite(n)
+    ? n
+    : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(
+    min,
+    Math.min(max, value)
+  );
+}
+
+function average(values) {
+  if (!values.length) return 0;
+
+  return values.reduce(
+    (sum, value) => sum + value,
+    0
+  ) / values.length;
+}
+
+function percentage(value) {
+  return Math.round(
+    clamp(value, 0, 1) * 1000
+  ) / 10;
+}
+
+function getTeamCacheKey(teamId) {
+  return `team-${teamId}`;
+}
+
+async function getTeamRecentForm(
+  teamId,
+  priority = 'background'
+) {
+  const key = getTeamCacheKey(teamId);
+
   const cached = cacheGet(
     teamCache,
-    teamId,
+    key,
     TEAM_CACHE_TTL
   );
 
   if (cached) return cached;
 
-  if (teamPending.has(String(teamId))) {
-    return teamPending.get(String(teamId));
+  if (teamPending.has(key)) {
+    promoteFootballRequest(
+      teamPending.get(key).task,
+      priority
+    );
+
+    return teamPending.get(key).promise;
   }
 
-  const pending = footballRequest(
-    `/teams/${encodeURIComponent(teamId)}/matches?status=FINISHED&limit=10`,
-    priority
-  )
-    .then(data => {
-      const matches = Array.isArray(data.matches)
-        ? data.matches
-        : [];
-
-      const scored = [];
-      const conceded = [];
-
-      matches.forEach(match => {
-        const homeGoals = Number(
-          match.score?.fullTime?.home ??
-          match.score?.fullTime?.homeTeam
-        );
-
-        const awayGoals = Number(
-          match.score?.fullTime?.away ??
-          match.score?.fullTime?.awayTeam
-        );
-
-        if (
-          !Number.isFinite(homeGoals) ||
-          !Number.isFinite(awayGoals)
-        ) {
-          return;
-        }
-
-        if (match.homeTeam?.id === Number(teamId)) {
-          scored.push(homeGoals);
-          conceded.push(awayGoals);
-        } else if (match.awayTeam?.id === Number(teamId)) {
-          scored.push(awayGoals);
-          conceded.push(homeGoals);
-        }
-      });
-
-      const count = scored.length;
-
-      const stats = {
-        played: count,
-        wins: 0,
-        draws: 0,
-        losses: 0,
-
-        goalsFor: scored.reduce((a, b) => a + b, 0),
-        goalsAgainst: conceded.reduce((a, b) => a + b, 0),
-
-        averageGoalsFor: count
-          ? scored.reduce((a, b) => a + b, 0) / count
-          : 1.25,
-
-        averageGoalsAgainst: count
-          ? conceded.reduce((a, b) => a + b, 0) / count
-          : 1.25,
-
-        form: []
-      };
-
-      matches.forEach(match => {
-        const homeGoals = Number(
-          match.score?.fullTime?.home ??
-          match.score?.fullTime?.homeTeam
-        );
-
-        const awayGoals = Number(
-          match.score?.fullTime?.away ??
-          match.score?.fullTime?.awayTeam
-        );
-
-        if (
-          !Number.isFinite(homeGoals) ||
-          !Number.isFinite(awayGoals)
-        ) {
-          return;
-        }
-
-        const isHome =
-          match.homeTeam?.id === Number(teamId);
-
-        const goalsFor = isHome
-          ? homeGoals
-          : awayGoals;
-
-        const goalsAgainst = isHome
-          ? awayGoals
-          : homeGoals;
-
-        const result =
-          goalsFor > goalsAgainst
-            ? 'W'
-            : goalsFor === goalsAgainst
-              ? 'D'
-              : 'L';
-
-        stats[
-          result === 'W'
-            ? 'wins'
-            : result === 'D'
-              ? 'draws'
-              : 'losses'
-        ]++;
-
-        if (stats.form.length < 5) {
-          stats.form.push(result);
-        }
-      });
-
-      return cacheSet(teamCache, teamId, stats);
-    })
-    .finally(() => {
-      teamPending.delete(String(teamId));
+  const promise = (async () => {
+    const params = new URLSearchParams({
+      team: String(teamId),
+      last: '10',
+      status: 'FT'
     });
 
-  teamPending.set(String(teamId), pending);
+    const result = await footballRequest(
+      `/fixtures?${params.toString()}`,
+      priority
+    );
 
-  return pending;
+    const rows = Array.isArray(result.response)
+      ? result.response
+      : [];
+
+    const matches = rows.map(mapFixture);
+
+    const form = [];
+    const goalsFor = [];
+    const goalsAgainst = [];
+
+    for (const match of matches) {
+      const home =
+        String(match.apiFootball.homeTeamId) ===
+        String(teamId);
+
+      const scored = home
+        ? match.score.fullTime.home
+        : match.score.fullTime.away;
+
+      const conceded = home
+        ? match.score.fullTime.away
+        : match.score.fullTime.home;
+
+      if (
+        scored == null ||
+        conceded == null
+      ) continue;
+
+      goalsFor.push(Number(scored));
+      goalsAgainst.push(Number(conceded));
+
+      if (scored > conceded) form.push('W');
+      else if (scored === conceded) form.push('D');
+      else form.push('L');
+    }
+
+    const data = {
+      teamId,
+      played: form.length,
+      form: form.slice(0, 5),
+      wins: form.filter(x => x === 'W').length,
+      draws: form.filter(x => x === 'D').length,
+      losses: form.filter(x => x === 'L').length,
+      goalsFor: goalsFor.reduce((a, b) => a + b, 0),
+      goalsAgainst: goalsAgainst.reduce((a, b) => a + b, 0),
+      averageGoalsFor: average(goalsFor),
+      averageGoalsAgainst: average(goalsAgainst),
+      matches
+    };
+
+    return cacheSet(teamCache, key, data);
+  })();
+
+  const task = apiQueue.find(
+    item => !item.started
+  );
+
+  teamPending.set(key, {
+    promise,
+    task
+  });
+
+  try {
+    return await promise;
+  } finally {
+    teamPending.delete(key);
+  }
+}
+// TEAM FORM AND MATCH ANALYSIS
+
+async function getTeamRecentForm(
+  teamId,
+  priority = 'background'
+) {
+  const key = getTeamCacheKey(teamId);
+
+  const cached = cacheGet(
+    teamCache,
+    key,
+    TEAM_CACHE_TTL
+  );
+
+  if (cached) return cached;
+
+  if (teamPending.has(key)) {
+    return teamPending.get(key);
+  }
+
+  const promise = (async () => {
+    const params = new URLSearchParams({
+      team: String(teamId),
+      last: '10',
+      status: 'FT'
+    });
+
+    const result = await footballRequest(
+      `/fixtures?${params.toString()}`,
+      priority
+    );
+
+    const rows = Array.isArray(result.response)
+      ? result.response
+      : [];
+
+    const form = [];
+    const goalsFor = [];
+    const goalsAgainst = [];
+
+    for (const item of rows) {
+      const match = mapFixture(item);
+
+      const isHome =
+        String(match.apiFootball.homeTeamId) ===
+        String(teamId);
+
+      const scored = isHome
+        ? match.score.fullTime.home
+        : match.score.fullTime.away;
+
+      const conceded = isHome
+        ? match.score.fullTime.away
+        : match.score.fullTime.home;
+
+      if (scored == null || conceded == null) {
+        continue;
+      }
+
+      goalsFor.push(Number(scored));
+      goalsAgainst.push(Number(conceded));
+
+      if (scored > conceded) form.push('W');
+      else if (scored === conceded) form.push('D');
+      else form.push('L');
+    }
+
+    const played = form.length;
+
+    const data = {
+      teamId,
+      played,
+      wins: form.filter(x => x === 'W').length,
+      draws: form.filter(x => x === 'D').length,
+      losses: form.filter(x => x === 'L').length,
+      goalsFor: goalsFor.reduce((a, b) => a + b, 0),
+      goalsAgainst: goalsAgainst.reduce((a, b) => a + b, 0),
+      averageGoalsFor: played
+        ? average(goalsFor)
+        : 1.25,
+      averageGoalsAgainst: played
+        ? average(goalsAgainst)
+        : 1.25,
+      form: form.slice(0, 5)
+    };
+
+    return cacheSet(teamCache, key, data);
+  })();
+
+  teamPending.set(key, promise);
+
+  try {
+    return await promise;
+  } finally {
+    teamPending.delete(key);
+  }
 }
 
 function expectedGoals(homeStats, awayStats) {
@@ -728,29 +856,39 @@ async function buildMatchAnalysis(
   match,
   priority = 'background'
 ) {
-  const [homeStats, awayStats] = await Promise.all([
-    getTeamStats(match.homeTeam.id, priority),
-    getTeamStats(match.awayTeam.id, priority)
-  ]);
+  const homeId = match.homeTeam.id;
+  const awayId = match.awayTeam.id;
 
-  const xg = expectedGoals(homeStats, awayStats);
+  const [homeStats, awayStats] =
+    await Promise.all([
+      getTeamRecentForm(homeId, priority),
+      getTeamRecentForm(awayId, priority)
+    ]);
 
-  const preMatchProbabilities = marketProbabilities(
+  const xg = expectedGoals(
+    homeStats,
+    awayStats
+  );
+
+  const probabilities = marketProbabilities(
     xg.home,
     xg.away
   );
 
-  const preMatchRecommendations = makeRecommendations(
-    preMatchProbabilities
-  );
+  const recommendations =
+    makeRecommendations(probabilities);
 
   const isLive = isLiveStatus(match.status);
 
   const liveAnalysis = isLive
-    ? liveProbabilityModel(xg.home, xg.away, match)
+    ? liveProbabilityModel(
+        xg.home,
+        xg.away,
+        match
+      )
     : null;
 
-  const usableLive = !!(
+  const usableLive = Boolean(
     liveAnalysis &&
     liveAnalysis.available &&
     liveAnalysis.isLiveAdjusted
@@ -761,20 +899,22 @@ async function buildMatchAnalysis(
 
     probabilities: usableLive
       ? liveAnalysis.probabilities
-      : preMatchProbabilities,
+      : probabilities,
 
     recommendations: usableLive
       ? liveAnalysis.recommendations
-      : preMatchRecommendations,
+      : recommendations,
 
     probabilityMode: isLive
-      ? usableLive
-        ? 'LIVE_ADJUSTED'
-        : 'LIVE_UNAVAILABLE'
+      ? (
+          usableLive
+            ? 'LIVE_ADJUSTED'
+            : 'LIVE_UNAVAILABLE'
+        )
       : 'PRE_MATCH',
 
-    preMatchProbabilities,
-    preMatchRecommendations,
+    preMatchProbabilities: probabilities,
+    preMatchRecommendations: recommendations,
 
     liveAnalysis: isLive
       ? liveAnalysis
@@ -791,7 +931,10 @@ async function buildMatchAnalysis(
     model: {
       name: 'Recent-form Poisson model',
 
-      expectedGoals: xg,
+      expectedGoals: {
+        home: Math.round(xg.home * 100) / 100,
+        away: Math.round(xg.away * 100) / 100
+      },
 
       sample: {
         homePlayed: homeStats.played,
@@ -799,185 +942,484 @@ async function buildMatchAnalysis(
       },
 
       note:
-        'Statistical estimates based on recent completed matches. They are not guaranteed outcomes.'
+        'Statistical estimates based on recent completed matches. Predictions are not guaranteed.'
     },
 
     limitations: [
       'Lineups, injuries, suspensions, weather and tactical changes may not be reflected.',
       'Live estimates require a reliable provider match minute and current score.'
-    ]
+    ],
+
+    generatedAt: new Date().toISOString()
   };
-}
+                         }
+// PROBABILITY ENGINE
 
-async function getFixtureDateRange() {
-  const from = new Date();
-  from.setUTCDate(from.getUTCDate() - 1);
+function marketProbabilities(homeXG, awayXG) {
+  const home = poissonDistribution(homeXG, 10);
+  const away = poissonDistribution(awayXG, 10);
 
-  const to = new Date();
-  to.setUTCDate(to.getUTCDate() + 7);
+  let homeWin = 0;
+  let draw = 0;
+  let awayWin = 0;
+  let over05 = 0;
+  let over15 = 0;
+  let over25 = 0;
+  let over35 = 0;
+  let under05 = 0;
+  let under15 = 0;
+  let under25 = 0;
+  let under35 = 0;
+  let bttsYes = 0;
 
-  return {
-    dateFrom: from.toISOString().slice(0, 10),
-    dateTo: to.toISOString().slice(0, 10)
-  };
-}
+  for (let h = 0; h < home.length; h++) {
+    for (let a = 0; a < away.length; a++) {
+      const probability = home[h] * away[a];
+      const total = h + a;
 
-async function saveFixtureMatches(
-  priority = 'normal',
-  force = false
-) {
-  if (
-    !force &&
-    fixtureCache.value &&
-    now() - fixtureCache.at < FIXTURE_CACHE_TTL
-  ) {
-    return fixtureCache.value;
+      if (h > a) homeWin += probability;
+      else if (h === a) draw += probability;
+      else awayWin += probability;
+
+      if (total >= 1) over05 += probability;
+      if (total >= 2) over15 += probability;
+      if (total >= 3) over25 += probability;
+      if (total >= 4) over35 += probability;
+
+      if (total < 1) under05 += probability;
+      if (total < 2) under15 += probability;
+      if (total < 3) under25 += probability;
+      if (total < 4) under35 += probability;
+
+      if (h > 0 && a > 0) bttsYes += probability;
+    }
   }
 
-  const range = await getFixtureDateRange();
+  const result = {
+    homeWin: percentage(homeWin),
+    draw: percentage(draw),
+    awayWin: percentage(awayWin),
 
-  const competitionFilter = encodeURIComponent(
-    COMPETITIONS.join(',')
-  );
+    doubleChance1X: percentage(homeWin + draw),
+    doubleChanceX2: percentage(draw + awayWin),
+    doubleChance12: percentage(homeWin + awayWin),
 
-  const data = await footballRequest(
-    `/matches?competitions=${competitionFilter}&dateFrom=${range.dateFrom}&dateTo=${range.dateTo}`,
-    priority
-  );
+    over05: percentage(over05),
+    over15: percentage(over15),
+    over25: percentage(over25),
+    over35: percentage(over35),
 
-  const matches = Array.isArray(data.matches)
-    ? data.matches
-    : [];
+    under05: percentage(under05),
+    under15: percentage(under15),
+    under25: percentage(under25),
+    under35: percentage(under35),
 
-  fixtureCache.value = {
-    matches,
-
-    filters: {
-      ...range,
-      competitions: COMPETITIONS
-    },
-
-    updatedAt: new Date().toISOString()
+    bttsYes: percentage(bttsYes),
+    bttsNo: percentage(1 - bttsYes)
   };
 
-  fixtureCache.at = now();
-
-  return fixtureCache.value;
+  return result;
 }
+
+function makeRecommendations(probabilities) {
+  const markets = [
+    ['HOME WIN', 'homeWin'],
+    ['DRAW', 'draw'],
+    ['AWAY WIN', 'awayWin'],
+
+    ['DOUBLE CHANCE 1X', 'doubleChance1X'],
+    ['DOUBLE CHANCE X2', 'doubleChanceX2'],
+    ['DOUBLE CHANCE 12', 'doubleChance12'],
+
+    ['OVER 0.5 GOALS', 'over05'],
+    ['OVER 1.5 GOALS', 'over15'],
+    ['OVER 2.5 GOALS', 'over25'],
+    ['OVER 3.5 GOALS', 'over35'],
+
+    ['UNDER 0.5 GOALS', 'under05'],
+    ['UNDER 1.5 GOALS', 'under15'],
+    ['UNDER 2.5 GOALS', 'under25'],
+    ['UNDER 3.5 GOALS', 'under35'],
+
+    ['BTTS YES', 'bttsYes'],
+    ['BTTS NO', 'bttsNo']
+  ];
+
+  return markets
+    .map(([market, key]) => ({
+      market,
+      probability: probabilities[key],
+      confidence: probabilities[key],
+      confidenceLabel:
+        probabilities[key] >= 75
+          ? 'HIGH'
+          : probabilities[key] >= 60
+            ? 'MEDIUM'
+            : 'LOW',
+
+      enabled: probabilities[key] >= 55
+    }))
+    .sort(
+      (a, b) =>
+        b.probability - a.probability
+    );
+}
+
+// LIVE MODEL
+// Never invent a live score or match minute.
+
+function liveProbabilityModel(
+  homeXG,
+  awayXG,
+  match
+) {
+  const status = String(
+    match.apiFootball &&
+    match.apiFootball.statusShort || ''
+  ).toUpperCase();
+
+  const minute = Number(match.minute);
+
+  const homeScore =
+    match.score &&
+    match.score.fullTime &&
+    match.score.fullTime.home;
+
+  const awayScore =
+    match.score &&
+    match.score.fullTime &&
+    match.score.fullTime.away;
+
+  const validMinute =
+    Number.isFinite(minute) &&
+    minute > 0 &&
+    minute <= 130;
+
+  const validScore =
+    homeScore !== null &&
+    homeScore !== undefined &&
+    awayScore !== null &&
+    awayScore !== undefined;
+
+  if (
+    !validMinute ||
+    !validScore ||
+    !['1H', '2H', 'HT', 'ET', 'LIVE'].includes(status)
+  ) {
+    return {
+      available: false,
+      isLiveAdjusted: false,
+      reason:
+        'Reliable live match minute or score is unavailable.',
+      recommendations: []
+    };
+  }
+
+  const elapsed = clamp(minute / 90, 0, 1);
+
+  const remaining = Math.max(
+    0.02,
+    1 - elapsed
+  );
+
+  const homeRemaining = homeXG * remaining;
+  const awayRemaining = awayXG * remaining;
+
+  const homeDistribution =
+    poissonDistribution(homeRemaining, 8);
+
+  const awayDistribution =
+    poissonDistribution(awayRemaining, 8);
+
+  let homeWin = 0;
+  let draw = 0;
+  let awayWin = 0;
+  let over05 = 0;
+  let over15 = 0;
+  let over25 = 0;
+  let over35 = 0;
+  let under05 = 0;
+  let under15 = 0;
+  let under25 = 0;
+  let under35 = 0;
+  let bttsYes = 0;
+
+  for (
+    let h = 0;
+    h < homeDistribution.length;
+    h++
+  ) {
+    for (
+      let a = 0;
+      a < awayDistribution.length;
+      a++
+    ) {
+      const probability =
+        homeDistribution[h] *
+        awayDistribution[a];
+
+      const finalHome =
+        Number(homeScore) + h;
+
+      const finalAway =
+        Number(awayScore) + a;
+
+      const total = finalHome + finalAway;
+
+      if (finalHome > finalAway) {
+        homeWin += probability;
+      } else if (finalHome === finalAway) {
+        draw += probability;
+      } else {
+        awayWin += probability;
+      }
+
+      if (total >= 1) over05 += probability;
+      if (total >= 2) over15 += probability;
+      if (total >= 3) over25 += probability;
+      if (total >= 4) over35 += probability;
+
+      if (total < 1) under05 += probability;
+      if (total < 2) under15 += probability;
+      if (total < 3) under25 += probability;
+      if (total < 4) under35 += probability;
+
+      if (finalHome > 0 && finalAway > 0) {
+        bttsYes += probability;
+      }
+    }
+  }
+
+  const probabilities = {
+    homeWin: percentage(homeWin),
+    draw: percentage(draw),
+    awayWin: percentage(awayWin),
+
+    doubleChance1X:
+      percentage(homeWin + draw),
+
+    doubleChanceX2:
+      percentage(draw + awayWin),
+
+    doubleChance12:
+      percentage(homeWin + awayWin),
+
+    over05: percentage(over05),
+    over15: percentage(over15),
+    over25: percentage(over25),
+    over35: percentage(over35),
+
+    under05: percentage(under05),
+    under15: percentage(under15),
+    under25: percentage(under25),
+    under35: percentage(under35),
+
+    bttsYes: percentage(bttsYes),
+    bttsNo: percentage(1 - bttsYes)
+  };
+
+  return {
+    available: true,
+    isLiveAdjusted: true,
+    minute,
+    score: {
+      home: Number(homeScore),
+      away: Number(awayScore)
+    },
+    probabilities,
+    recommendations:
+      makeRecommendations(probabilities)
+  };
+}
+
+// API ROUTES
 
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     app: 'GENERAL FOOTBALL TIPS V1.0',
-    apiKeyConfigured: !!API_TOKEN,
-
+    provider: 'API-Football',
+    apiKeyConfigured: Boolean(API_TOKEN),
     queuedRequests: apiQueue.length,
     runningRequest,
-
-    cachedFixtures: !!fixtureCache.value,
+    cachedFixtures: Boolean(fixtureCache.value),
+    fixtureCount: fixtureCache.value
+      ? fixtureCache.value.length
+      : 0,
     cachedAnalyses: analysisCache.size,
     cachedTeams: teamCache.size,
     cachedMatches: matchCache.size,
-
     pendingAnalyses: analysisPending.size
   });
 });
 
 app.get('/api/fixtures', async (req, res) => {
   try {
-    const result = await saveFixtureMatches(
-      normalizePriority(req.query.priority || 'normal'),
-      req.query.refresh === '1'
+    const priority = normalizePriority(
+      req.query.priority
+    );
+
+    const force =
+      req.query.refresh === 'true';
+
+    const fixtures = await getFixtures(
+      priority,
+      force
     );
 
     res.json({
-      matches: result.matches,
-      fixtures: result.matches,
-      updatedAt: result.updatedAt,
-      filters: result.filters
+      matches: fixtures,
+      fixtures,
+      count: fixtures.length,
+      provider: 'API-Football',
+      dateFrom: getLagosToday(),
+      dateTo: addDays(getLagosToday(), 10)
     });
   } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message
+    console.error(
+      'Fixtures error:',
+      error.message
+    );
+
+    res.status(error.status || 502).json({
+      error: 'Unable to load fixtures.',
+      message: error.message
     });
   }
 });
 
-app.get('/api/match/:id/analysis', async (req, res) => {
-  const id = String(req.params.id);
+app.get(
+  '/api/match/:id/analysis',
+  async (req, res) => {
+    const id = req.params.id;
 
-  const priority = normalizePriority(
-    req.query.priority || 'background'
-  );
-
-  try {
-    const match = await getMatchInformation(
-      id,
-      priority,
-      false
+    const priority = normalizePriority(
+      req.query.priority
     );
 
-    const live = isLiveStatus(match.status);
+    const cacheKey = String(id);
 
-    const cached = !live
-      ? cacheGet(
-          analysisCache,
-          id,
-          ANALYSIS_CACHE_TTL
-        )
-      : null;
+    const cached = cacheGet(
+      analysisCache,
+      cacheKey,
+      ANALYSIS_CACHE_TTL
+    );
 
     if (cached) {
       return res.json(cached);
     }
 
-    if (analysisPending.has(id)) {
-      return res.json(await analysisPending.get(id));
+    if (analysisPending.has(cacheKey)) {
+      return res.json(
+        await analysisPending.get(cacheKey)
+      );
     }
 
-    const pending = buildMatchAnalysis(
-      match,
-      priority
-    )
-      .then(data => {
-        if (!live) {
-          cacheSet(analysisCache, id, data);
-        }
+    const promise = (async () => {
+      const match = await getMatchInformation(
+        id,
+        priority
+      );
 
-        return data;
-      })
-      .finally(() => {
-        analysisPending.delete(id);
+      if (FINISHED_STATUSES.has(match.status)) {
+        const error = new Error(
+          'This match has finished. View it in History.'
+        );
+
+        error.status = 410;
+        throw error;
+      }
+
+      if (UNAVAILABLE_STATUSES.has(match.status)) {
+        const error = new Error(
+          'This fixture is not currently available for analysis.'
+        );
+
+        error.status = 409;
+        throw error;
+      }
+
+      const analysis = await buildMatchAnalysis(
+        match,
+        priority
+      );
+
+      return cacheSet(
+        analysisCache,
+        cacheKey,
+        analysis
+      );
+    })();
+
+    analysisPending.set(cacheKey, promise);
+
+    try {
+      const result = await promise;
+      res.json(result);
+    } catch (error) {
+      console.error(
+        'Analysis error:',
+        id,
+        error.message
+      );
+
+      res.status(error.status || 502).json({
+        error: 'Unable to analyse this match.',
+        message: error.message
       });
+    } finally {
+      analysisPending.delete(cacheKey);
+    }
+  }
+);
 
-    analysisPending.set(id, pending);
+// HISTORY / COMPLETED FIXTURES
 
-    res.json(await pending);
+app.get('/api/history', async (req, res) => {
+  try {
+    const fixtures = await getFixtures('normal');
+
+    const history = fixtures.filter(
+      match =>
+        FINISHED_STATUSES.has(match.status)
+    );
+
+    res.json({
+      matches: history,
+      count: history.length
+    });
   } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message
+    res.status(error.status || 502).json({
+      error: 'Unable to load history.',
+      message: error.message
     });
   }
 });
 
-app.get('/api/match/:id', async (req, res) => {
-  try {
-    res.json(
-      await getMatchInformation(
-        req.params.id,
-        'high',
-        true
-      )
-    );
-  } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message
-    });
-  }
+// FRONTEND
+
+app.get('/', (req, res) => {
+  res.sendFile(
+    path.join(__dirname, 'index.html')
+  );
+});
+
+app.use((error, req, res, next) => {
+  console.error(error);
+
+  if (res.headersSent) return next(error);
+
+  res.status(500).json({
+    error: 'Internal server error.'
+  });
 });
 
 app.listen(PORT, () => {
   console.log(
-    `GENERAL FOOTBALL TIPS V1.0 listening on ${PORT}`
+    `GENERAL FOOTBALL TIPS V1.0 running on port ${PORT}`
+  );
+
+  console.log(
+    `API-Football key configured: ${Boolean(API_TOKEN)}`
   );
 });
