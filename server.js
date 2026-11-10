@@ -427,14 +427,12 @@ function sortFixtures(fixtures) {
 async function fetchFixturePage(
   from,
   to,
-  page,
   priority
 ) {
   const params = new URLSearchParams({
-    from,
-    to,
-    timezone: 'Africa/Lagos',
-    page: String(page)
+    from: from,
+    to: to,
+    timezone: 'Africa/Lagos'
   });
 
   return footballRequest(
@@ -450,41 +448,26 @@ async function fetchAllFixtures(priority = 'normal') {
   const all = [];
   const seen = new Set();
 
-  for (
-    let page = 1;
-    page <= FIXTURE_PAGES;
-    page++
-  ) {
-    const result = await fetchFixturePage(
-      today,
-      endDate,
-      page,
-      priority
-    );
+  const result = await fetchFixturePage(
+    today,
+    endDate,
+    priority
+  );
 
-    const rows = Array.isArray(result.response)
-      ? result.response
-      : [];
+  const rows = Array.isArray(result.response)
+    ? result.response
+    : [];
 
-    for (const row of rows) {
-      const mapped = mapFixture(row);
+  for (const row of rows) {
+    const mapped = mapFixture(row);
 
-      if (
-        mapped.id &&
-        !seen.has(String(mapped.id))
-      ) {
-        seen.add(String(mapped.id));
-        all.push(mapped);
-      }
+    if (
+      mapped.id &&
+      !seen.has(String(mapped.id))
+    ) {
+      seen.add(String(mapped.id));
+      all.push(mapped);
     }
-
-    const totalPages =
-      result.paging &&
-      Number(result.paging.total)
-        ? Number(result.paging.total)
-        : 1;
-
-    if (page >= totalPages) break;
   }
 
   sortFixtures(all);
