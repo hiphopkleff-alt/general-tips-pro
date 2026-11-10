@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#071426">
+ <link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GENERAL TIPS">
 <title>GENERAL FOOTBALL TIPS V1.0</title>
 <style>
 :root{--bg:#071426;--panel:#10223a;--panel2:#142b47;--blue:#258cff;--cyan:#38d8ff;--white:#f4f8ff;--muted:#8fa4bd;--green:#35ffad;--green2:#65ffc0;--red:#ff6578;--yellow:#ffc857;--border:rgba(130,170,220,.15)}
@@ -138,6 +143,14 @@ main{width:100%;max-width:760px;margin:auto;padding:17px 15px}
 .won{color:var(--green2);font-weight:900}.lost{color:#ff8492;font-weight:900}.pending{color:var(--yellow);font-weight:900}
 #connectionStatus{font-size:10px;color:var(--muted);margin-top:12px;text-align:center}
 @media(max-width:420px){.team-name{font-size:10px}.team-logo{width:34px;height:34px;flex-basis:34px}.match-card,.vip-card{padding:12px}.prediction-market{font-size:14px}.team-form-grid{gap:7px}.team-form-card{padding:10px 8px}.stat-number{font-size:24px}}
+ if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .catch(error => {
+        console.error("App installation support:", error);
+      });
+  });
+ }
 </style>
 </head>
 <body>
