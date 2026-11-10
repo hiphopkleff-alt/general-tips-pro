@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "GENERAL FOOTBALL TIPS",
+  "short_name": "GENERAL TIPS",
+  "description": "Smart Football Analysis and Predictions",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#071426",
+  "theme_color": "#071426",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
