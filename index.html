@@ -67,12 +67,24 @@ header{
 .brand{display:flex;align-items:center;gap:11px}
 
 .logo{
- width:43px;height:43px;
+ width:43px;
+ height:43px;
+ flex:0 0 43px;
  border-radius:13px;
- display:flex;align-items:center;justify-content:center;
- font-size:23px;
- background:linear-gradient(135deg,#087b58,#35ffad);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ overflow:hidden;
+ background:transparent;
  box-shadow:0 0 22px rgba(53,255,173,.25);
+}
+
+.logo img{
+ width:100%;
+ height:100%;
+ object-fit:cover;
+ border-radius:13px;
+ display:block;
 }
 
 .brand h1{font-size:15px;letter-spacing:.5px}
@@ -562,7 +574,9 @@ main{width:100%;max-width:760px;margin:auto;padding:17px 15px}
 <header>
  <div class="header-inner">
   <div class="brand">
-   <div class="logo">⚽</div>
+<div class="logo">
+ <img src="/icon-192.png" alt="GENERAL FOOTBALL TIPS">
+</div>
    <div>
     <h1>GENERAL FOOTBALL TIPS</h1>
     <p>SMART FOOTBALL ANALYSIS</p>
