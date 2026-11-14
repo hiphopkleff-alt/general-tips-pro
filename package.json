@@ -1,12 +1,13 @@
 {
-  "name": "general-tips-pro",
+  "name": "general-football-tips",
   "version": "1.0.0",
-  "description": "GENERAL TIPS PRO football analysis and prediction dashboard",
+  "description": "GENERAL FOOTBALL TIPS V1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "firebase-admin": "^13.5.0"
   }
 }
